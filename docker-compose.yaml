@@ -5,7 +5,7 @@ services:
     build: .
     container_name: api
     restart: on-failure
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    command: sh -c "python forum/manage.py migrate && python forum/manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/usr/src/
     ports:
@@ -22,7 +22,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
   db:
-    image: postgres:14.0-alpine
+    image: postgres:17.0-alpine
     container_name: db
     restart: on-failure
     volumes:
