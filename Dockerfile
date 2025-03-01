@@ -1,4 +1,4 @@
-FROM python:3.8-alpine
+FROM python:3.9-alpine
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -22,4 +22,4 @@ EXPOSE 8000
 
 COPY . .
 
-CMD ["sh", "-c", "python forum/manage.py migrate && python forum/manage.py runserver 0.0.0.0:8000"]
+CMD ["sh", "-c", "sleep 5 && python forum/manage.py migrate && python forum/manage.py runserver 0.0.0.0:8000"]

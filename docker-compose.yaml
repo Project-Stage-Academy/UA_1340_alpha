@@ -4,15 +4,14 @@ services:
   api:
     build: .
     container_name: api
-    restart: on-failure
-    command: sh -c "python forum/manage.py migrate && python forum/manage.py runserver 0.0.0.0:8000"
+    restart: always
+    command: sh -c "sleep 5 && python forum/manage.py migrate && python forum/manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/usr/src/
     ports:
       - "8000:8000"
     depends_on:
       - db
-      - pgadmin
     environment:
       - SECRET_KEY=${SECRET_KEY}
       - POSTGRES_HOST=${POSTGRES_HOST}
@@ -26,7 +25,7 @@ services:
     container_name: db
     restart: on-failure
     volumes:
-      - ./postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     environment:
@@ -39,15 +38,15 @@ services:
     container_name: pgadmin
     restart: always
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
     ports:
       - "5050:80"
     volumes:
-      - pgadmin_data:/var/lib/pgadmin/data
+      - pgadmin-data:/var/lib/pgadmin/data
     depends_on:
       - db
 
 volumes:
   postgres-data:
-  pgadmin_data:
+  pgadmin-data:
