@@ -16,8 +16,7 @@ class StartupProfile(models.Model):
     website = models.URLField(blank=True, null=True)
     contact_email = models.EmailField()
     created_at = models.DateTimeField(auto_now_add=True)
-
-    # Doesn't include field for startup_logo.
+    startup_logo = models.ImageField(upload_to='startup_logos/', blank=True, null=True)
 
     # ForeignKey to Industry
     industries = models.ManyToManyField(Industry, related_name='startups', blank=True)

@@ -12,9 +12,7 @@ class InvestorProfile(models.Model):
     contact_email = models.EmailField()
     investment_range = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
-
-
-    # Doesn't include field for investor_logo.
+    investor_logo = models.ImageField(upload_to='investor_logos/', blank=True, null=True)
 
     def __str__(self):
         return self.company_name
