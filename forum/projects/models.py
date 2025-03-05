@@ -1,5 +1,6 @@
+from django.core.exceptions import ValidationError
 from django.db import models
-import uuid
+
 from startups.models import StartupProfile
 
 class Project(models.Model):
@@ -9,8 +10,8 @@ class Project(models.Model):
         ('Completed', 'Completed'),
     ]
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    startup = models.ForeignKey(StartupProfile, on_delete=models.CASCADE)
+    id = models.AutoField(primary_key=True)
+    startup = models.ForeignKey(StartupProfile, on_delete=models.CASCADE, related_name='projects')
     title = models.CharField(max_length=255)
     description = models.TextField()
     funding_goal = models.DecimalField(max_digits=10, decimal_places=2)
@@ -22,5 +23,10 @@ class Project(models.Model):
 
     # Doesn't include fields for business_plan, media_files.
 
+    def clean(self):
+        """Ensure funding_needed is not greater than funding_goal"""
+        if self.funding_needed > self.funding_goal:
+            raise ValidationError("Funding needed cannot exceed funding goal.")
+
     def __str__(self):
-        return self.title
+        return f"{self.title} | {self.startup.company_name} | {self.get_status_display()}"

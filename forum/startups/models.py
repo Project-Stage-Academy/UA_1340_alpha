@@ -1,5 +1,4 @@
 from django.db import models
-import uuid
 
 
 class Industry(models.Model):
@@ -14,21 +13,24 @@ class StartupProfile(models.Model):
     company_name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, null=True)
     website = models.URLField(blank=True, null=True)
-    contact_email = models.EmailField()
+    contact_email = models.EmailField(unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     # Doesn't include field for startup_logo.
 
     # ForeignKey to Industry
-    industries = models.ManyToManyField(Industry, related_name='startups', blank=True)
+    industries = models.ManyToManyField(Industry, blank=True, related_name='startups')
 
     def __str__(self):
         return self.company_name
 
 
 class StartupIndustry(models.Model):
-    startup = models.ForeignKey(StartupProfile, on_delete=models.CASCADE)
-    industry = models.ForeignKey(Industry, on_delete=models.CASCADE)
+    startup = models.ForeignKey(StartupProfile, on_delete=models.CASCADE, related_name='industry_links')
+    industry = models.ForeignKey(Industry, on_delete=models.CASCADE, related_name='startup_links')
 
     class Meta:
         unique_together = ('startup', 'industry')
+
+    def __str__(self):
+        return f"{self.startup.company_name} - {self.industry.name}"

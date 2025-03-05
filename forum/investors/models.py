@@ -1,15 +1,14 @@
 from django.db import models
-import uuid
 from users.models import User
 from startups.models import StartupProfile, Industry
 
 
 class InvestorProfile(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.AutoField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='investor_profile')
     company_name = models.CharField(max_length=255)
     investment_focus = models.CharField(max_length=255)
-    contact_email = models.EmailField()
+    contact_email = models.EmailField(unique=True)
     investment_range = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -21,8 +20,8 @@ class InvestorProfile(models.Model):
 
 
 class InvestorPreferredIndustry(models.Model):
-    investor = models.ForeignKey(InvestorProfile, on_delete=models.CASCADE)
-    industry = models.ForeignKey(Industry, on_delete=models.CASCADE)
+    investor = models.ForeignKey(InvestorProfile, on_delete=models.CASCADE, related_name='preferred_industries')
+    industry = models.ForeignKey(Industry, on_delete=models.CASCADE, related_name='investors')
 
     class Meta:
         unique_together = ('investor', 'industry')
@@ -32,8 +31,8 @@ class InvestorPreferredIndustry(models.Model):
 
 
 class InvestorSavedStartup(models.Model):
-    investor = models.ForeignKey(InvestorProfile, on_delete=models.CASCADE)
-    startup = models.ForeignKey(StartupProfile, on_delete=models.CASCADE)
+    investor = models.ForeignKey(InvestorProfile, on_delete=models.CASCADE, related_name='saved_startups')
+    startup = models.ForeignKey(StartupProfile, on_delete=models.CASCADE, related_name='investor_saves')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -44,8 +43,8 @@ class InvestorSavedStartup(models.Model):
 
 
 class InvestorTrackedProject(models.Model):
-    investor = models.ForeignKey(InvestorProfile, on_delete=models.CASCADE)
-    project = models.ForeignKey('projects.Project', on_delete=models.CASCADE)
+    investor = models.ForeignKey(InvestorProfile, on_delete=models.CASCADE, related_name='tracked_projects')
+    project = models.ForeignKey('projects.Project', on_delete=models.CASCADE, related_name='investor_tracks')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
