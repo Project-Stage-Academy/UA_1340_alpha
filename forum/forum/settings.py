@@ -149,3 +149,5 @@ DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 # Media files URL
 MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/'
 
+# set UTF-8 as default encoding
+DEFAULT_CHARSET = 'utf-8'
