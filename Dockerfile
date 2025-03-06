@@ -18,8 +18,6 @@ COPY ./requirements.txt .
 
 RUN pip install -r requirements.txt
 
-RUN pip install pylint pylint-django
-
 EXPOSE 8000
 
 COPY . .
