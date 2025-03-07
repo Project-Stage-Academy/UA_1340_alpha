@@ -53,7 +53,7 @@ LOGGING = {
         'file': {
             'level' : 'WARNING',
             'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join('forum', 'logs', 'forum.log'),
+            'filename': os.path.join(BASE_DIR, 'logs', 'forum.log'),
             'when': 'midnight',
             'backupCount': 7,
             'formatter': 'verbose',
