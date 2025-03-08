@@ -12,6 +12,7 @@ services:
       - "8000:8000"
     depends_on:
       - db
+      - redis
     environment:
       - SECRET_KEY=${SECRET_KEY}
       - POSTGRES_HOST=${POSTGRES_HOST}
@@ -19,6 +20,13 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
 
   db:
     image: postgres:17.0-alpine
@@ -46,6 +54,27 @@ services:
       - pgadmin-data:/var/lib/pgadmin/data
     depends_on:
       - db
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  celery:
+    build: .
+    container_name: celery
+    restart: always
+    command: sh -c "cd forum && celery -A forum worker --loglevel=info"
+    volumes:
+      - .:/usr/src
+    depends_on:
+      - redis
+      - api
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
 
 volumes:
   postgres-data:
