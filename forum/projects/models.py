@@ -3,6 +3,7 @@ from django.db import models
 
 from startups.models import StartupProfile
 
+
 class Project(models.Model):
     STATUS_CHOICES = [
         ('Seeking Funding', 'Seeking Funding'),
@@ -20,8 +21,8 @@ class Project(models.Model):
     duration = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    # Doesn't include fields for business_plan, media_files.
+    business_plan = models.FileField(upload_to='project_business_plans/', blank=True, null=True)
+    media_files = models.FileField(upload_to='project_media/', blank=True, null=True)
 
     def clean(self):
         """Ensure funding_needed is not greater than funding_goal"""
