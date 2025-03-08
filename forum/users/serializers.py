@@ -1,8 +1,10 @@
+from django.core.validators import MinLengthValidator, MaxLengthValidator, RegexValidator
 from rest_framework import serializers
+
 from .models import User
 
+
 class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=8)
 
     class Meta:
         model = User
@@ -14,6 +16,19 @@ class UserSerializer(serializers.ModelSerializer):
             'last_name',
             'role',
         ]
+        extra_kwargs = {
+            'password': {
+                'write_only': True,
+                'validators': [
+                    MinLengthValidator(8),
+                    MaxLengthValidator(50),
+                    RegexValidator(
+                        regex=r'^(?=.*[A-Z])(?=.*\d).+$',
+                        message="Password must contain at least one uppercase letter and one number."
+                    ),
+                ],
+            },
+        }
 
     def create(self, validated_data):
 
