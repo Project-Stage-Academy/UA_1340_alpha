@@ -38,6 +38,7 @@ class User(AbstractBaseUser):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
 
     is_active = models.BooleanField(default=True)
+    is_email_confirmed = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
 
