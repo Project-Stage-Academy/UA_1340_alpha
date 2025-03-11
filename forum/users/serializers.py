@@ -1,5 +1,7 @@
 from django.core.validators import MinLengthValidator, MaxLengthValidator, RegexValidator
+from django.contrib.auth import authenticate
 from rest_framework import serializers
+from rest_framework_simplejwt.tokens import RefreshToken  
 
 from .models import User
 
@@ -42,3 +44,29 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
         return user
+    
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        email = data.get('email')
+        password = data.get('password')
+        user = authenticate(email=email, password=password)
+
+        if not user:
+            raise serializers.ValidationError("Invalid credentials")
+
+        if not user.is_active:
+            raise serializers.ValidationError("User is inactive")
+
+        # Генерація токена
+        refresh = RefreshToken.for_user(user)
+        refresh['email'] = user.email
+        refresh['role'] = user.role
+
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }
