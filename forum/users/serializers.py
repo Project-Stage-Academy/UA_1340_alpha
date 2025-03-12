@@ -45,13 +45,14 @@ class UserSerializer(serializers.ModelSerializer):
         return user
     
 
-class LogInObtainPairSerializer(TokenObtainPairSerializer):
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
-    def get_token(cls, user):
+    def get_token(cls, user: User):
         token = super().get_token(user)
 
         token['email'] = user.email
         token['role'] = user.role
+        token['is_active'] = user.is_active
 
         return token
 

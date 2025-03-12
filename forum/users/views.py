@@ -4,8 +4,9 @@ from django.db import IntegrityError, DatabaseError
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .serializers import UserSerializer 
+from .serializers import UserSerializer, CustomTokenObtainPairSerializer
 from forum.tasks import send_email_task
 
 
@@ -106,3 +107,7 @@ class SendEmailAPIView(APIView):
         send_email_task.delay(subject, message, recipient_list, html_message)
 
         return Response({"success": "HTML Email is being sent"}, status=status.HTTP_202_ACCEPTED)
+    
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
