@@ -97,13 +97,16 @@ WSGI_APPLICATION = 'forum.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+# Check if running inside Docker
+IN_DOCKER = os.environ.get("IN_DOCKER", "False").lower() == "true"
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': os.environ.get('POSTGRES_DB'),
         'USER': os.environ.get('POSTGRES_USER'),
         'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-        'HOST': os.environ.get('POSTGRES_HOST'),
+        'HOST': os.environ.get('POSTGRES_HOST') if IN_DOCKER else 'localhost',  # Use 'db' in Docker, 'localhost' otherwise
         'PORT': os.environ.get('POSTGRES_PORT')
     },
 }

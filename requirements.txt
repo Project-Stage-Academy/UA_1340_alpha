@@ -44,3 +44,6 @@ tzdata==2025.1
 urllib3==1.26.20
 vine==5.1.0
 wcwidth==0.2.13
+
+djangorestframework-simplejwt~=5.5.0
+faker~=37.0.0
