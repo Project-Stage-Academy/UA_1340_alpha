@@ -4,24 +4,17 @@ from django.db import IntegrityError, DatabaseError
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-
 from .serializers import UserSerializer
-from forum.tasks import send_email_task
-
-
-# Create your views here.
-from rest_framework.views import APIView
+from forum.tasks import send_email_task_no_ssl, send_email_task
 from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
-from rest_framework import status
-from users.models import User
+from .models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from django.utils.timezone import now
+from django.template.loader import render_to_string
 from datetime import timedelta
 import logging
-from .tasks import send_reset_password_email
 from .utils import validate_password_policy
 
 logger = logging.getLogger(__name__)
@@ -41,12 +34,43 @@ class ResetPasswordRequestView(APIView):
             user = User.objects.get(email=email)
             logger.info(
                 "Queueing password reset email for user %s", user.email)
-            send_reset_password_email.delay(user.id)
+            self.send_reset_password_email(user, request)
         except User.DoesNotExist:
             logger.warning(
                 "Password reset requested for non-existent email: %s", email)
 
         return Response({"message": "If the email is registered, a password reset link will be sent."}, status=status.HTTP_200_OK)
+
+    def send_reset_password_email(self, user, request):
+        """
+        Asynchronous task to generate a password reset link and queue an email for sending.
+        Args:
+            user_id (int): The ID of the user requesting a password reset.
+        Raises:
+            User.DoesNotExist: If no user is found with the given user_id.
+        """
+        logger.info("Sending reset password email...")
+
+        try:
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            reset_link = request.build_absolute_uri(
+                f"/api/users/reset/{uid}/{token}/")
+
+            subject = "Password Reset Request"
+            message = f"Hi {user.first_name},\n\nYou requested a password reset. Click the link below to set a new password:\n{reset_link}\n\nIf you didn't request this, you can ignore this email.\n\nThanks,\nThe Forum-Beta Team"
+            html_message = render_to_string(
+                'emails/reset_password_email.html', {'user': user, 'reset_link': reset_link})
+
+            send_email_task_no_ssl.delay(
+                subject, message, [user.email], html_message)
+
+            logger.info(f"Password reset email queued for {user.email}")
+
+        except User.DoesNotExist:
+            logger.error(f"User with ID {user} does not exist")
+        except Exception as e:
+            logger.error(f"Failed to send password reset email: {e}")
 
 
 class ResetPasswordConfirmView(APIView):
