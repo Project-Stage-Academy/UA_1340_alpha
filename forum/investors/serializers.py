@@ -35,6 +35,7 @@ class CreateInvestorProfileSerializer(serializers.ModelSerializer):
             'investment_range',
             'investor_logo',
         ]
+        read_only_fields = ('id', )
 
 
 class InvestorPreferredIndustrySerializer(serializers.ModelSerializer):
@@ -58,6 +59,7 @@ class CreateInvestorPreferredIndustrySerializer(serializers.ModelSerializer):
             'investor',
             'industry',
         ]
+        read_only_fields = ('id', )
 
 
 class InvestorSavedStartupSerializer(serializers.ModelSerializer):
@@ -83,7 +85,7 @@ class CreateInvestorSavedStartupSerializer(serializers.ModelSerializer):
             'investor',
             'startup',
         ]
-
+        read_only_fields = ('id', )
 
 class InvestorTrackedProjectSerializer(serializers.ModelSerializer):
     investor = InvestorProfileSerializer(read_only=True)
@@ -108,3 +110,5 @@ class CreateInvestorTrackedProjectSerializer(serializers.ModelSerializer):
             'investor',
             'project',
         ]
+
+        read_only_fields = ('id', )

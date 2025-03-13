@@ -45,6 +45,12 @@ class CreateStartupProfileSerializer(serializers.ModelSerializer):
             'startup_logo',
             'industries',
         ]
+        read_only_fields = ('id', )
+
+    def validate_industries(self, value):
+        if not value:
+            raise serializers.ValidationError("At least one industry must be selected.")
+        return value
 
 
 class StartupIndustrySerializer(serializers.ModelSerializer):
