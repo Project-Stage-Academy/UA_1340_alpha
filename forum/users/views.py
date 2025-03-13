@@ -5,8 +5,9 @@ from django.db import IntegrityError, DatabaseError
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .serializers import UserSerializer
+from .serializers import UserSerializer, CustomTokenObtainPairSerializer
 from forum.tasks import send_email_task
 
 logger = logging.getLogger(__name__)
@@ -84,7 +85,7 @@ class SignupView(APIView):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
+        
           
 class SendEmailAPIView(APIView):
     def post(self, request):
@@ -122,3 +123,7 @@ class SendEmailAPIView(APIView):
         logger.info("Email task sent to queue with subject: %s", subject)
 
         return Response({"success": "HTML Email is being sent"}, status=status.HTTP_202_ACCEPTED)
+    
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
