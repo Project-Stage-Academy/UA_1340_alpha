@@ -2,7 +2,7 @@ import random
 from django.core.management.base import BaseCommand
 from faker import Faker
 from users.models import User
-from startups.models import StartupProfile, Industry, StartupIndustry
+from startups.models import StartupProfile, Industry
 from investors.models import InvestorProfile, InvestorPreferredIndustry, InvestorSavedStartup
 from projects.models import Project
 
@@ -18,22 +18,22 @@ class Command(BaseCommand):
         # Create industries
 
         industry = ["Tech", "Healthcare", "Finance", "Real Estate", "Energy"]
-        industries = [Industry.objects.create(name=industry[_]) for _ in range(5)]
+        industries = [Industry.objects.create(name=name) for name in industry]
         self.stdout.write(self.style.SUCCESS("Industries created."))
 
         # Create users
-        users = []
-        for _ in range(10):
-            role = random.choice(['startup', 'investor'])
-            user = User.objects.create_user(
+        users = [
+            User(
                 email=fake.email(),
                 password="password123",
                 first_name=fake.first_name(),
                 last_name=fake.last_name(),
-                role=role,
+                role=random.choice(['startup', 'investor']),
                 is_email_confirmed=True
             )
-            users.append(user)
+            for _ in range(10)
+        ]
+        User.objects.bulk_create(users)
         self.stdout.write(self.style.SUCCESS("Users created."))
 
         # Create startup profiles
@@ -65,35 +65,37 @@ class Command(BaseCommand):
 
         # Assign industries to investors
 
-        for investor in investors:
-            selected_industries = random.sample(industries, k=random.randint(1, 3))  # Ensure unique selections
-            for industry in selected_industries:
-                InvestorPreferredIndustry.objects.get_or_create(
-                    investor=investor,
-                    industry=industry
-                )
+        investor_industries = [
+            InvestorPreferredIndustry(investor=investor, industry=industry)
+            for investor in investors
+            for industry in random.sample(industries, k=random.randint(1, 3))
+        ]
+        InvestorPreferredIndustry.objects.bulk_create(investor_industries)
 
         # Investors save startups
         for investor in investors:
-            for _ in range(random.randint(1, 3)):
-                InvestorSavedStartup.objects.get_or_create(
-                    investor=investor,
-                    startup=random.choice(startups)
-                )
+            saved_startups = random.sample(startups, k=random.randint(1, 3))
+            InvestorSavedStartup.objects.bulk_create([
+                InvestorSavedStartup(investor=investor, startup=startup)
+                for startup in saved_startups
+            ])
         self.stdout.write(self.style.SUCCESS("Investor saved startups created."))
 
         # Create projects
-        for startup in startups:
-            for _ in range(random.randint(1, 3)):
-                Project.objects.create(
-                    startup=startup,
-                    title=fake.sentence(nb_words=4),
-                    description=fake.text(),
-                    funding_goal=random.uniform(10000, 500000),
-                    funding_needed=random.uniform(1000, 100000),
-                    status=random.choice(['Seeking Funding', 'In Progress', 'Completed']),
-                    duration=random.randint(1, 24)
-                )
+        projects = [
+            Project(
+                startup=startup,
+                title=fake.sentence(nb_words=4),
+                description=fake.text(),
+                funding_goal=random.uniform(10000, 500000),
+                funding_needed=random.uniform(1000, 100000),
+                status=random.choice(['Seeking Funding', 'In Progress', 'Completed']),
+                duration=random.randint(1, 24)
+            )
+            for startup in startups
+            for _ in range(random.randint(1, 3))
+        ]
+        Project.objects.bulk_create(projects)
         self.stdout.write(self.style.SUCCESS("Projects created."))
 
         self.stdout.write(self.style.SUCCESS("Database population completed."))
