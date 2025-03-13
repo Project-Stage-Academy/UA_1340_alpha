@@ -133,6 +133,7 @@ class LogoutAPIView(APIView):
         Returns:
             A Response object with status 205 if successful, or 400 if an error occurs.
         """
+        
         try:
             refresh_token = request.data.get("refresh")
             token = RefreshToken(refresh_token)
