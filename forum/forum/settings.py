@@ -132,6 +132,7 @@ REST_FRAMEWORK = {
     )
 }
 
+# Specifies the custom User model for authentication
 AUTH_USER_MODEL = "users.User"
 
 SIMPLE_JWT = {
