@@ -1,5 +1,5 @@
 import logging
-from unittest.mock import patch
+from unittest.mock import patch, ANY
 
 import jwt
 from django.db import DatabaseError
@@ -199,3 +199,45 @@ class VerifyEmailViewTests(APITestCase):
             print(response)
             self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
             self.assertEqual(response.data['error'], "Database error occurred")
+
+
+class ResendVerificationEmailViewTests(APITestCase):
+
+    def setUp(self):
+        self.url = reverse('resend-verification-email')
+        self.email = 'test@example.com'
+        self.user = User.objects.create(email=self.email, is_email_confirmed=False)
+
+    def test_resend_verification_email_with_valid_email_returns_200(self):
+        with patch('users.views.send_verification_email', return_value=True) as mock_send_email:
+            response = self.client.post(self.url, {'email': self.email}, format='json')
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data['message'], 'Verification email was sent.')
+            mock_send_email.assert_called_once_with(self.user, ANY)
+
+    def test_resend_verification_email_missing_email_returns_400(self):
+        response = self.client.post(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['message'], 'Email is required')
+
+    def test_resend_verification_email_non_existent_user_returns_404(self):
+        non_existent_email_data = {'email': 'nonexistent@example.com'}
+
+        response = self.client.post(self.url, non_existent_email_data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data['error'], "Email verification requested for non-existent email")
+
+    def test_resend_verification_email_unexpected_exception_returns_500(self):
+        with patch('users.models.User.objects.get', side_effect=Exception("Unexpected error")):
+            response = self.client.post(self.url, {'email': self.email}, format='json')
+
+            self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+            self.assertEqual(response.data['error'], "Failed to send verification email.")
+            self.assertIn('details', response.data)
+
+    def test_resend_verification_email_service_failure_returns_500(self):
+        with patch('users.views.send_verification_email', return_value=False):
+            response = self.client.post(self.url, {'email': self.email}, format='json')
+            self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+            self.assertEqual(response.data['error'], "Failed to send verification email.")
