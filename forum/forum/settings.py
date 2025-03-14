@@ -46,6 +46,9 @@ CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 
+LOG_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -68,7 +71,7 @@ LOGGING = {
         'file': {
             'level' : 'WARNING',
             'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'forum.log'),
+            'filename': os.path.join(LOG_DIR, 'forum.log'),
             'when': 'midnight',
             'backupCount': 7,
             'formatter': 'verbose',
