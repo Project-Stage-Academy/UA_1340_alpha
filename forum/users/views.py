@@ -159,10 +159,11 @@ class SignupView(APIView):
 
         except Exception as e:
             logger.error("Failed to create user. An unexpected error occurred: %s", str(e))
-            return Response({
-                "error": "Failed to create user. An unexpected error occurred",
-                "details": str(e)
-            },
+            return Response(
+                {
+                    "error": "Failed to create user. An unexpected error occurred",
+                    "details": str(e)
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -173,7 +174,7 @@ class VerifyEmailView(APIView):
     def get(self, request):
         token = request.GET.get("token")
         if not token:
-            logger.warning("Token is required")
+            logger.info("Token is required")
             return Response(
                 {"error": "Token is required"},
                 status=status.HTTP_400_BAD_REQUEST
@@ -191,19 +192,19 @@ class VerifyEmailView(APIView):
                 status=status.HTTP_200_OK
             )
         except User.DoesNotExist:
-            logger.warning("User not found")
+            logger.info("User not found")
             return Response(
                 {"error": "User not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
         except jwt.ExpiredSignatureError:
-            logger.warning("Token has expired")
+            logger.info("Token has expired")
             return Response(
                 {"error": "Token has expired"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         except jwt.InvalidTokenError:
-            logger.warning("Invalid token")
+            logger.info("Invalid token")
             return Response(
                 {"error": "Invalid token"},
                 status=status.HTTP_400_BAD_REQUEST
@@ -221,6 +222,52 @@ class VerifyEmailView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+
+class ResendVerificationEmailView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get("email")
+        if not email:
+            return Response(
+                {"message": "Email is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        logger.info("Requested email: %s", email)
+
+        try:
+            user = User.objects.get(email=email)
+            logger.info("Resending verification email %s", email)
+            success = send_verification_email(user, request)
+
+            if success:
+                return Response(
+                    {"message": "Verification email was sent."},
+                    status=status.HTTP_200_OK
+                )
+            else:
+                logger.error(f"Failed to send verification email to {email}")
+                return Response(
+                    {"error": "Failed to send verification email."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+        except User.DoesNotExist:
+            logger.warning("Email verification requested for non-existent email: %s", email)
+            return Response(
+                {"error": "Email verification requested for non-existent email"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Failed to send verification email to {email}")
+            return Response(
+                {
+                    "error": "Failed to send verification email.",
+                    "details": str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class SendEmailAPIView(APIView):

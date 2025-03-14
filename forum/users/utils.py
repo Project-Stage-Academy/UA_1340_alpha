@@ -10,6 +10,8 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from forum.tasks import send_email_task_no_ssl, send_email_task
 
+logger = logging.getLogger(__name__)
+
 
 def validate_password_policy(password):
     """
@@ -62,15 +64,24 @@ def send_reset_password_email(user, request):
         return False
 
 
-def send_verification_email(user, request):
-    token = AccessToken.for_user(user)
+def send_verification_email(user, request) -> bool:
+    try:
+        token = AccessToken.for_user(user)
 
-    verification_url = request.build_absolute_uri(
-        reverse("verify-email") + f"?token={str(token)}"
-    )
+        verification_url = request.build_absolute_uri(
+            reverse("verify-email") + f"?token={str(token)}"
+        )
 
-    subject = "Verify Your Email"
-    message = f"Click the link to verify your email: {verification_url}"
-    html_message = f"<p>Click <a href='{verification_url}'>here</a> to verify your email.</p>"
+        subject = "Verify Your Email"
+        message = f"Click the link to verify your email: {verification_url}"
+        html_message = f"<p>Click <a href='{verification_url}'>here</a> to verify your email.</p>"
 
-    send_email_task.delay(subject, message, [user.email], html_message)
+        send_email_task.delay(subject, message, [user.email], html_message)
+        return True
+
+    except CeleryError as ce:
+        logger.error(f"Failed to send verification email: {ce}")
+        return False
+    except Exception as e:
+        logger.error(f"Failed to send verification email: {e}")
+        return False
