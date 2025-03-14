@@ -1,11 +1,14 @@
-
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes
-from django.template.loader import render_to_string
-from forum.tasks import send_email_task_no_ssl
-from celery.exceptions import CeleryError
 import logging
+
+from celery.exceptions import CeleryError
+from django.contrib.auth.tokens import default_token_generator
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from rest_framework_simplejwt.tokens import AccessToken
+
+from forum.tasks import send_email_task_no_ssl, send_email_task
 
 
 def validate_password_policy(password):
@@ -57,3 +60,17 @@ def send_reset_password_email(user, request):
     except Exception as e:
         logger.error(f"Failed to send password reset email: {e}")
         return False
+
+
+def send_verification_email(user, request):
+    token = AccessToken.for_user(user)
+
+    verification_url = request.build_absolute_uri(
+        reverse("verify-email") + f"?token={str(token)}"
+    )
+
+    subject = "Verify Your Email"
+    message = f"Click the link to verify your email: {verification_url}"
+    html_message = f"<p>Click <a href='{verification_url}'>here</a> to verify your email.</p>"
+
+    send_email_task.delay(subject, message, [user.email], html_message)

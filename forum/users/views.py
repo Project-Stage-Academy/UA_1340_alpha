@@ -1,21 +1,21 @@
 import logging
+
+import jwt
+from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.core.validators import validate_email
 from django.db import IntegrityError, DatabaseError
+from django.utils.http import urlsafe_base64_decode
 from rest_framework import status
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from .serializers import UserSerializer
-from forum.tasks import send_email_task_no_ssl, send_email_task
 from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from .models import User
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.timezone import now
-from django.template.loader import render_to_string
-from datetime import timedelta
-import logging
-from .utils import validate_password_policy, send_reset_password_email
+from .serializers import UserSerializer
+from .utils import validate_password_policy, send_reset_password_email, send_verification_email
+from forum.tasks import send_email_task
 
 
 logger = logging.getLogger(__name__)
@@ -91,7 +91,6 @@ class ResetPasswordCompleteView(APIView):
     def get(self, request):
         return Response({"message": "Password reset process is complete."}, status=status.HTTP_200_OK)
 
-logger = logging.getLogger(__name__)
 
 class SignupView(APIView):
 
@@ -103,7 +102,7 @@ class SignupView(APIView):
                 user = serializer.save()
                 if user:
                     logger.info("User created successfully with id: %s", user.id)
-                    # send email here
+                    send_verification_email(user, request)
                     return Response(
                         {
                             "message": "User created successfully",
@@ -166,6 +165,62 @@ class SignupView(APIView):
             },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        token = request.GET.get("token")
+        if not token:
+            logger.warning("Token is required")
+            return Response(
+                {"error": "Token is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, settings.SIMPLE_JWT["ALGORITHM"])
+            user = User.objects.get(id=payload["user_id"])
+            user.is_email_confirmed = True
+            user.is_active = True
+            user.save()
+
+            return Response(
+                {"message": "Email verified successfully"},
+                status=status.HTTP_200_OK
+            )
+        except User.DoesNotExist:
+            logger.warning("User not found")
+            return Response(
+                {"error": "User not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except jwt.ExpiredSignatureError:
+            logger.warning("Token has expired")
+            return Response(
+                {"error": "Token has expired"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except jwt.InvalidTokenError:
+            logger.warning("Invalid token")
+            return Response(
+                {"error": "Invalid token"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except DatabaseError as e:
+            logger.error(f"Database error: {e}")
+            return Response(
+                {"error": "Database error occurred"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            return Response(
+                {"error": "Unexpected error occurred"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 
 class SendEmailAPIView(APIView):
