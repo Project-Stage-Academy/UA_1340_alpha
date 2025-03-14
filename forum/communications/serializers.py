@@ -14,20 +14,28 @@ class CommunicationsSerializer(serializers.ModelSerializer):
 
 
 class CreateCommunicationsSerializer(serializers.ModelSerializer):
+    sender = serializers.PrimaryKeyRelatedField(read_only=True)
+
     class Meta:
         model = Communication
         fields = ['id', 'sender', 'receiver', 'content']
         read_only_fields = ('id',)
 
     def validate(self, data):
-        sender = data.get('sender')
+        request = self.context.get('request')
+        if not request:
+            raise serializers.ValidationError("Request object is required.")
+
+        sender = request.user
         receiver = data.get('receiver')
 
-        if not sender or not receiver:
-            raise serializers.ValidationError("Both sender and receiver are required.")
-
-        if sender.id == receiver.id:
-            raise serializers.ValidationError("The sender and the recipient may not be the same person.")
-
+        if not receiver:
+            raise serializers.ValidationError({"receiver": "Receiver is required."})
+        if sender == receiver:
+            raise serializers.ValidationError({"receiver": "The sender and the recipient may not be the same person."})
         return data
+
+    def create(self, validated_data):
+        validated_data['sender'] = self.context['request'].user
+        return super().create(validated_data)
 
