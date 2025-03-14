@@ -17,6 +17,7 @@ Django==4.2.19
 django-storages==1.14.5
 djangorestframework==3.15.2
 djangorestframework_simplejwt==5.5.0
+Faker==37.0.0
 gunicorn==23.0.0
 isort==5.13.2
 jmespath==1.0.1
@@ -44,6 +45,3 @@ tzdata==2025.1
 urllib3==1.26.20
 vine==5.1.0
 wcwidth==0.2.13
-
-djangorestframework-simplejwt~=5.5.0
-faker~=37.0.0

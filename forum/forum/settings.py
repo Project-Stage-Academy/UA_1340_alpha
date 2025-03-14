@@ -48,6 +48,10 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_TASK_DEFAULT_RETRY_DELAY = 60
 CELERY_TASK_MAX_RETRIES = 3
 
+# Logging settings
+LOG_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -57,9 +61,9 @@ LOGGING = {
             'style': '{',
         },
         'simple': {
-            'format' : '{levelname} {message}',
+            'format': '{levelname} {message}',
             'style': '{',
-        },  
+        },
     },
     'handlers': {
         'console': {
@@ -68,9 +72,9 @@ LOGGING = {
             'formatter': 'simple',
         },
         'file': {
-            'level' : 'WARNING',
+            'level': 'WARNING',
             'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'forum.log'),
+            'filename': os.path.join(LOG_DIR, 'forum.log'),
             'when': 'midnight',
             'backupCount': 7,
             'formatter': 'verbose',
@@ -81,7 +85,7 @@ LOGGING = {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
         },
-        'django.db.backends':{
+        'django.db.backends': {
             'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,
