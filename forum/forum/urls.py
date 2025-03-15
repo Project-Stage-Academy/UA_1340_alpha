@@ -14,4 +14,5 @@ urlpatterns = [
     path('send-email/', SendEmailAPIView.as_view(), name="send_email"),
     path('api/communications/', include('communications.urls')),
     path('api/investors/', include('investors.urls')),
+    path('api/projects/', include('projects.urls')),
 ]
