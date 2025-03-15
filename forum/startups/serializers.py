@@ -45,7 +45,7 @@ class CreateStartupProfileSerializer(serializers.ModelSerializer):
             'startup_logo',
             'industries',
         ]
-        read_only_fields = ('id', )
+        read_only_fields = ('id', 'user')
 
     def validate_industries(self, value):
         if not value:
