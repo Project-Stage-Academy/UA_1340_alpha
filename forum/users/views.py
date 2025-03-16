@@ -1,21 +1,24 @@
 import logging
+from datetime import timedelta
+
+from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.core.validators import validate_email
 from django.db import IntegrityError, DatabaseError
-from rest_framework import status
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from .serializers import UserSerializer
-from forum.tasks import send_email_task_no_ssl, send_email_task
-from rest_framework.permissions import AllowAny
-from .models import User
-from django.contrib.auth.tokens import default_token_generator
+from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.timezone import now
-from django.template.loader import render_to_string
-from datetime import timedelta
-import logging
+
+from rest_framework import status
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+from .models import User
+from .serializers import UserSerializer, CustomTokenObtainPairSerializer
 from .utils import validate_password_policy, send_reset_password_email
+from forum.tasks import send_email_task, send_email_task_no_ssl
 
 
 logger = logging.getLogger(__name__)
@@ -167,7 +170,6 @@ class SignupView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-
 class SendEmailAPIView(APIView):
     def post(self, request):
         logger.info("SendEmailAPIView POST request received with data: %s", request.data)
@@ -204,3 +206,7 @@ class SendEmailAPIView(APIView):
         logger.info("Email task sent to queue with subject: %s", subject)
 
         return Response({"success": "HTML Email is being sent"}, status=status.HTTP_202_ACCEPTED)
+    
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
