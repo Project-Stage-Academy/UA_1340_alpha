@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'projects',
     'communications',
     'dashboard',
+    'drf_yasg'
 ]
 
 MIDDLEWARE = [
