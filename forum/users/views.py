@@ -238,6 +238,14 @@ class ResendVerificationEmailView(APIView):
 
         try:
             user = User.objects.get(email=email)
+
+            if user.is_email_confirmed:
+                logger.info("Email is already verified.")
+                return Response(
+                    {"message": "Email is already verified."},
+                    status=status.HTTP_200_OK
+                )
+
             logger.info("Resending verification email %s", email)
             success = send_verification_email(user, request)
 

@@ -241,3 +241,12 @@ class ResendVerificationEmailViewTests(APITestCase):
             response = self.client.post(self.url, {'email': self.email}, format='json')
             self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
             self.assertEqual(response.data['error'], "Failed to send verification email.")
+
+    def test_resend_verification_email_confirmed_user_returns_200(self):
+        self.user.is_email_confirmed = True
+        self.user.save()
+
+        with patch('users.views.send_verification_email', return_value=True) as mock_send_email:
+            response = self.client.post(self.url, {'email': self.email}, format='json')
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data['message'], 'Email is already verified.')
