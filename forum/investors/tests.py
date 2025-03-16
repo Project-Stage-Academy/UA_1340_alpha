@@ -10,9 +10,9 @@ class InvestorProfileApiTests(APITestCase):
 
     def setUp(self):
         """
-        Налаштування тестового середовища.
+        Set up the test environment.
         """
-        # Створення тестових користувачів
+        # Create test users
         self.user1 = User.objects.create_user(
             first_name="testuser1",
             last_name="testuser1",
@@ -28,7 +28,7 @@ class InvestorProfileApiTests(APITestCase):
             role="investor"
         )
 
-        # Створення профілю інвестора
+        # Create an investor profile
         self.investor_profile = InvestorProfile.objects.create(
             user=self.user1,
             company_name="Test Company",
@@ -37,20 +37,20 @@ class InvestorProfileApiTests(APITestCase):
             investment_range="100000-500000"
         )
 
-        # Ініціалізація фабрики запитів
+        # Initialize the request factory
         self.factory = APIRequestFactory()
 
     def test_get_investor_profiles(self):
         """
-        Тест: отримання списку інвесторських профілів.
+        Test: Retrieve a list of investor profiles.
         """
         view = InvestorProfileApiView.as_view()
 
-        # Створюємо GET-запит
+        # Create a GET request
         request = self.factory.get('/api/investors/investor-profiles/')
         force_authenticate(request, user=self.user1)
 
-        # Викликаємо view
+        # Call the view
         response = view(request)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
@@ -58,7 +58,7 @@ class InvestorProfileApiTests(APITestCase):
 
     def test_create_investor_profile(self):
         """
-        Тест: створення нового інвесторського профілю.
+        Test: Create a new investor profile.
         """
         view = InvestorProfileApiView.as_view()
         payload = {
@@ -68,33 +68,33 @@ class InvestorProfileApiTests(APITestCase):
             "investment_range": "200000-600000",
         }
 
-        # Створюємо POST-запит
+        # Create a POST request
         request = self.factory.post('/api/investors/investor-profiles/', payload)
         force_authenticate(request, user=self.user2)
 
-        # Викликаємо view
+        # Call the view
         response = view(request)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['company_name'], payload['company_name'])
 
     def test_get_investor_profile_detail(self):
         """
-        Тест: отримання детальної інформації про профіль.
+        Test: Retrieve detailed information about a profile.
         """
         view = InvestorProfileDetailApiView.as_view()
 
-        # Створюємо GET-запит
+        # Create a GET request
         request = self.factory.get(f'/api/investors/investor-profiles/{self.investor_profile.id}/')
         force_authenticate(request, user=self.user1)
 
-        # Викликаємо view
+        # Call the view
         response = view(request, pk=self.investor_profile.id)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['company_name'], self.investor_profile.company_name)
 
     def test_update_investor_profile(self):
         """
-        Тест: оновлення існуючого інвесторського профілю.
+        Test: Update an existing investor profile.
         """
         view = InvestorProfileDetailApiView.as_view()
         payload = {
@@ -104,37 +104,37 @@ class InvestorProfileApiTests(APITestCase):
             "investment_range": "300000-700000",
         }
 
-        # Створюємо PUT-запит
+        # Create a PUT request
         request = self.factory.put(f'/api/investors/investor-profiles/{self.investor_profile.id}/', payload)
         force_authenticate(request, user=self.user1)
 
-        # Викликаємо view
+        # Call the view
         response = view(request, pk=self.investor_profile.id)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['company_name'], payload['company_name'])
 
     def test_delete_investor_profile(self):
         """
-        Тест: видалення існуючого інвесторського профілю.
+        Test: Delete an existing investor profile.
         """
         view = InvestorProfileDetailApiView.as_view()
 
-        # Створюємо DELETE-запит
+        # Create a DELETE request
         request = self.factory.delete(f'/api/investors/investor-profiles/{self.investor_profile.id}/')
         force_authenticate(request, user=self.user1)
 
-        # Викликаємо view
+        # Call the view
         response = view(request, pk=self.investor_profile.id)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-        # Перевіряємо, чи профіль справді видалено
+        # Verify that the profile has been deleted
         self.assertFalse(InvestorProfile.objects.filter(pk=self.investor_profile.id).exists())
 
 class InvestorPreferredIndustryApiTests(APITestCase):
 
     def setUp(self):
         """
-        Налаштування тестового середовища.
+        Set up the test environment.
         """
         self.user = User.objects.create_user(
             first_name="testuser",
@@ -165,7 +165,7 @@ class InvestorPreferredIndustryApiTests(APITestCase):
 
     def test_get_investor_preferred_industries(self):
         """
-        Тест: отримання списку індустрій.
+        Test: Retrieve a list of industries.
         """
         view = InvestorPreferredIndustryApiView.as_view()
 
@@ -173,7 +173,7 @@ class InvestorPreferredIndustryApiTests(APITestCase):
         force_authenticate(request, user=self.user)
 
         response = view(request)
-        # print(response.data)  # Для діагностики
+        # print(response.data)  # For debugging
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['investor']['id'], self.investor_profile.id)
@@ -181,7 +181,7 @@ class InvestorPreferredIndustryApiTests(APITestCase):
 
     def test_create_investor_preferred_industry(self):
         """
-        Тест: створення нової індустрії.
+        Test: Create a new industry.
         """
         view = InvestorPreferredIndustryApiView.as_view()
         new_industry = Industry.objects.create(
@@ -196,14 +196,14 @@ class InvestorPreferredIndustryApiTests(APITestCase):
         force_authenticate(request, user=self.user)
 
         response = view(request)
-        # print(response.data)  # Для діагностики
+        # print(response.data)  # For debugging
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['investor'], self.investor_profile.id)
         self.assertEqual(response.data['industry'], new_industry.id)
 
     def test_get_investor_preferred_industry_detail(self):
         """
-        Тест: отримання детальної інформації про індустрію.
+        Test: Retrieve detailed information about an industry.
         """
         view = InvestorPreferredIndustryDetailApiView.as_view()
 
@@ -211,14 +211,14 @@ class InvestorPreferredIndustryApiTests(APITestCase):
         force_authenticate(request, user=self.user)
 
         response = view(request, pk=self.investor_preferred_industry.id)
-        # print(response.data)  # Для діагностики
+        # print(response.data)  # For debugging
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['investor']['id'], self.investor_profile.id)
         self.assertEqual(response.data['industry']['id'], self.industry.id)
 
     def test_delete_investor_preferred_industry(self):
         """
-        Тест: видалення існуючої індустрії.
+        Test: Delete an existing industry.
         """
         view = InvestorPreferredIndustryDetailApiView.as_view()
 
@@ -226,7 +226,7 @@ class InvestorPreferredIndustryApiTests(APITestCase):
         force_authenticate(request, user=self.user)
 
         response = view(request, pk=self.investor_preferred_industry.id)
-        # print(response.data)  # Для діагностики
+        # print(response.data)  # For debugging
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
         self.assertFalse(InvestorPreferredIndustry.objects.filter(pk=self.investor_preferred_industry.id).exists())
@@ -235,7 +235,7 @@ class InvestorSavedStartupApiTests(APITestCase):
 
     def setUp(self):
         """
-        Налаштування тестового середовища.
+        Set up the test environment.
         """
         self.user = User.objects.create_user(
             first_name="testuser",
@@ -269,7 +269,7 @@ class InvestorSavedStartupApiTests(APITestCase):
 
     def test_get_investor_saved_startups(self):
         """
-        Тест: отримання списку збережених стартапів.
+        Test: Retrieve a list of saved startups.
         """
         view = InvestorSavedStartupApiView.as_view()
 
@@ -277,7 +277,7 @@ class InvestorSavedStartupApiTests(APITestCase):
         force_authenticate(request, user=self.user)
 
         response = view(request)
-        # print(response.data)  # Для діагностики
+        # print(response.data)  # For debugging
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['investor']['id'], self.investor_profile.id)
@@ -285,7 +285,7 @@ class InvestorSavedStartupApiTests(APITestCase):
 
     def test_create_investor_saved_startup(self):
         """
-        Тест: створення нового збереженого стартапу.
+        Test: Create a new saved startup.
         """
         view = InvestorSavedStartupApiView.as_view()
 
@@ -313,14 +313,14 @@ class InvestorSavedStartupApiTests(APITestCase):
         force_authenticate(request, user=self.user)
 
         response = view(request)
-        # print(response.data)  # Для діагностики
+        # print(response.data)  # For debugging
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['investor'], self.investor_profile.id)
         self.assertEqual(response.data['startup'], new_startup.id)
 
     def test_get_investor_saved_startup_detail(self):
         """
-        Тест: отримання детальної інформації про збережений стартап.
+        Test: Retrieve detailed information about a saved startup.
         """
         view = InvestorSavedStartupDetailApiView.as_view()
 
@@ -328,14 +328,14 @@ class InvestorSavedStartupApiTests(APITestCase):
         force_authenticate(request, user=self.user)
 
         response = view(request, pk=self.saved_startup.id)
-        # print(response.data)  # Для діагностики
+        # print(response.data)  # For debugging
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['investor']['id'], self.investor_profile.id)
         self.assertEqual(response.data['startup']['id'], self.startup_profile.id)
 
     def test_delete_investor_saved_startup(self):
         """
-        Тест: видалення існуючого збереженого стартапу.
+        Test: Delete an existing saved startup.
         """
         view = InvestorSavedStartupDetailApiView.as_view()
 
@@ -343,16 +343,17 @@ class InvestorSavedStartupApiTests(APITestCase):
         force_authenticate(request, user=self.user)
 
         response = view(request, pk=self.saved_startup.id)
-        # print(response.data)  # Для діагностики
+        # print(response.data)  # For debugging
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
         self.assertFalse(InvestorSavedStartup.objects.filter(pk=self.saved_startup.id).exists())
+
 
 class InvestorTrackedProjectApiTests(APITestCase):
 
     def setUp(self):
         """
-        Налаштування тестового середовища.
+        Set up the test environment.
         """
         self.user = User.objects.create_user(
             first_name="testuser",
@@ -396,7 +397,7 @@ class InvestorTrackedProjectApiTests(APITestCase):
 
     def test_get_investor_tracked_projects(self):
         """
-        Тест: отримання списку відстежуваних проектів.
+        Test: Retrieve a list of tracked projects.
         """
         view = InvestorTrackedProjectApiView.as_view()
 
@@ -404,7 +405,7 @@ class InvestorTrackedProjectApiTests(APITestCase):
         force_authenticate(request, user=self.user)
 
         response = view(request)
-        # print(response.data)  # Для діагностики
+        # print(response.data)  # For debugging
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['investor']['id'], self.investor_profile.id)
@@ -412,7 +413,7 @@ class InvestorTrackedProjectApiTests(APITestCase):
 
     def test_create_investor_tracked_project(self):
         """
-        Тест: створення нового відстежуваного проекту.
+        Test: Create a new tracked project.
         """
         view = InvestorTrackedProjectApiView.as_view()
 
@@ -434,14 +435,14 @@ class InvestorTrackedProjectApiTests(APITestCase):
         force_authenticate(request, user=self.user)
 
         response = view(request)
-        # print(response.data)  # Для діагностики
+        # print(response.data)  # For debugging
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['investor'], self.investor_profile.id)
         self.assertEqual(response.data['project'], new_project.id)
 
     def test_get_investor_tracked_project_detail(self):
         """
-        Тест: отримання детальної інформації про відстежуваний проект.
+        Test: Retrieve detailed information about a tracked project.
         """
         view = InvestorTrackedProjectDetailApiView.as_view()
 
@@ -449,14 +450,14 @@ class InvestorTrackedProjectApiTests(APITestCase):
         force_authenticate(request, user=self.user)
 
         response = view(request, pk=self.tracked_project.id)
-        # print(response.data)  # Для діагностики
+        # print(response.data)  # For debugging
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['investor']['id'], self.investor_profile.id)
         self.assertEqual(response.data['project']['id'], self.project.id)
 
     def test_delete_investor_tracked_project(self):
         """
-        Тест: видалення існуючого відстежуваного проекту.
+        Test: Delete an existing tracked project.
         """
         view = InvestorTrackedProjectDetailApiView.as_view()
 
@@ -464,7 +465,8 @@ class InvestorTrackedProjectApiTests(APITestCase):
         force_authenticate(request, user=self.user)
 
         response = view(request, pk=self.tracked_project.id)
-        # print(response.data)  # Для діагностики
+        # print(response.data)  # For debugging
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
         self.assertFalse(InvestorTrackedProject.objects.filter(pk=self.tracked_project.id).exists())
+
