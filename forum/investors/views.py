@@ -31,6 +31,12 @@ class SavedStartupsApiView(APIView):
                 type=openapi.TYPE_STRING
             ),
             openapi.Parameter(
+                'search_field',
+                openapi.IN_QUERY,
+                description="Field to search by (e.g., 'company_name', 'description')",
+                type=openapi.TYPE_STRING
+            ),
+            openapi.Parameter(
                 'sort',
                 openapi.IN_QUERY,
                 description="Sort startups by a specific field (e.g., 'name', '-name' for descending)",
@@ -60,11 +66,12 @@ class SavedStartupsApiView(APIView):
             investor_profile = InvestorProfile.objects.get(user=request.user)
             saved_startups = StartupProfile.objects.filter(investor_saves__investor=investor_profile)
 
+            search_field = request.query_params.get('search_field', 'company_name')  # Default to 'name'
             search_term = request.query_params.get('search', None)
+
             if search_term:
-                saved_startups = saved_startups.filter(
-                    name__icontains=search_term
-                )
+                filter_kwargs = {f"{search_field}__icontains": search_term}
+                saved_startups = saved_startups.filter(**filter_kwargs)
 
             sort_field = request.query_params.get('sort', None)
             if sort_field:
@@ -96,13 +103,15 @@ class CreateDeleteSavedStartupApiView(APIView):
         tags=["investors"],
         operation_summary="Save startup to the saved startups list",
         operation_description="Save a startup to the authenticated investor's saved startups list.",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'startup_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the startup to be saved'),
-            },
-            required=['startup_id']
-        ),
+        manual_parameters=[
+            openapi.Parameter(
+                'startup_id',
+                openapi.IN_PATH,
+                description="ID of the startup to be saved.",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            ),
+        ],
         responses={
             201: CreateInvestorSavedStartupSerializer,
             400: openapi.Response(description="Startup is already saved by the investor"),
@@ -142,7 +151,8 @@ class CreateDeleteSavedStartupApiView(APIView):
                 )
             
             logger.info(f"Startup {startup_id} successfully saved by investor {request.user}")
-            return Response(status=status.HTTP_201_CREATED)
+            serializer = CreateInvestorSavedStartupSerializer(saved_startup)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         
         except InvestorProfile.DoesNotExist:
             logger.error(f"Investor profile not found for user {request.user}")
