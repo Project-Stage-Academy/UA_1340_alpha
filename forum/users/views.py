@@ -1,21 +1,20 @@
+import jwt
 import logging
 
-import jwt
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
-from django.core.validators import validate_email
 from django.db import IntegrityError, DatabaseError
 from django.utils.http import urlsafe_base64_decode
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import User
-from .serializers import UserSerializer
+from .serializers import UserSerializer, CustomTokenObtainPairSerializer
 from .utils import validate_password_policy, send_reset_password_email, send_verification_email
-from forum.tasks import send_email_task
 
 
 logger = logging.getLogger(__name__)
@@ -276,3 +275,7 @@ class ResendVerificationEmailView(APIView):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
