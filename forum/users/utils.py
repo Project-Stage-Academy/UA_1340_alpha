@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import urlencode
 
 from celery.exceptions import CeleryError
 from django.contrib.auth.tokens import default_token_generator
@@ -6,7 +7,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
-from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from forum.tasks import send_email_task, send_email_task_no_ssl
 
@@ -66,10 +67,10 @@ def send_reset_password_email(user, request):
 
 def send_verification_email(user, request) -> bool:
     try:
-        token = AccessToken.for_user(user)
+        token = RefreshToken.for_user(user)
 
         verification_url = request.build_absolute_uri(
-            reverse("verify-email") + f"?token={str(token)}"
+            f"{reverse('verify-email')}?{urlencode({'token': token})}"
         )
 
         subject = "Verify Your Email"
