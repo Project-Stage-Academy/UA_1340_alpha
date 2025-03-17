@@ -1,5 +1,5 @@
 import logging
-from unittest.mock import patch, ANY
+from unittest.mock import ANY, patch
 
 import jwt
 from django.db import DatabaseError

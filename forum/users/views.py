@@ -1,10 +1,10 @@
-import jwt
 import logging
 
+import jwt
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
-from django.db import IntegrityError, DatabaseError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.db import DatabaseError, IntegrityError
 from django.utils.http import urlsafe_base64_decode
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -13,9 +13,9 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import User
-from .serializers import UserSerializer, CustomTokenObtainPairSerializer
-from .utils import validate_password_policy, send_reset_password_email, send_verification_email
-
+from .serializers import CustomTokenObtainPairSerializer, UserSerializer
+from .utils import (send_reset_password_email, send_verification_email,
+                    validate_password_policy)
 
 logger = logging.getLogger(__name__)
 

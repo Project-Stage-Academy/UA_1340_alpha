@@ -4,11 +4,11 @@ from celery.exceptions import CeleryError
 from django.contrib.auth.tokens import default_token_generator
 from django.template.loader import render_to_string
 from django.urls import reverse
-from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 from rest_framework_simplejwt.tokens import AccessToken
 
-from forum.tasks import send_email_task_no_ssl, send_email_task
+from forum.tasks import send_email_task, send_email_task_no_ssl
 
 logger = logging.getLogger(__name__)
 
