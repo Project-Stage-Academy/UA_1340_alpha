@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import SavedStartupsApiView, CreateDeleteSavedStartupApiView
+from .views import CreateDeleteSavedStartupApiView, SavedStartupsApiView
 
 urlpatterns = [
     # Investor Saved Startups

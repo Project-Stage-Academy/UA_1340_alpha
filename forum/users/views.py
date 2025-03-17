@@ -2,24 +2,23 @@ import logging
 from datetime import timedelta
 
 from django.contrib.auth.tokens import default_token_generator
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.validators import validate_email
-from django.db import IntegrityError, DatabaseError
+from django.db import DatabaseError, IntegrityError
 from django.template.loader import render_to_string
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.timezone import now
-
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .models import User
-from .serializers import UserSerializer, CustomTokenObtainPairSerializer
-from .utils import validate_password_policy, send_reset_password_email
 from forum.tasks import send_email_task, send_email_task_no_ssl
 
+from .models import User
+from .serializers import CustomTokenObtainPairSerializer, UserSerializer
+from .utils import send_reset_password_email, validate_password_policy
 
 logger = logging.getLogger(__name__)
 

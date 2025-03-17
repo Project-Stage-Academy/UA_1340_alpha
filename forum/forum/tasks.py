@@ -1,15 +1,14 @@
 import logging
+import smtplib
+import ssl
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from typing import List
 
 from celery import shared_task
-from django.core.mail import send_mail
-from django.conf import settings
-
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from celery.exceptions import MaxRetriesExceededError
-import ssl
+from django.conf import settings
+from django.core.mail import send_mail
 
 logger = logging.getLogger(__name__)
 
