@@ -3,8 +3,12 @@ from rest_framework import serializers
 from startups.serializers import IndustrySerializer, StartupProfileSerializer
 from users.serializers import UserSerializer
 
-from .models import (InvestorPreferredIndustry, InvestorProfile,
-                     InvestorSavedStartup, InvestorTrackedProject)
+from .models import (
+    InvestorPreferredIndustry,
+    InvestorProfile,
+    InvestorSavedStartup,
+    InvestorTrackedProject,
+)
 
 
 class InvestorProfileSerializer(serializers.ModelSerializer):

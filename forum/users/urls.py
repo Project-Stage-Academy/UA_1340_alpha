@@ -1,8 +1,13 @@
 from django.urls import path
 
-from .views import (ResendVerificationEmailView, ResetPasswordCompleteView,
-                    ResetPasswordConfirmView, ResetPasswordRequestView,
-                    SignupView, VerifyEmailView)
+from .views import (
+    ResendVerificationEmailView,
+    ResetPasswordCompleteView,
+    ResetPasswordConfirmView,
+    ResetPasswordRequestView,
+    SignupView,
+    VerifyEmailView,
+)
 
 urlpatterns = [
     path('signup/', SignupView.as_view(), name='signup'),

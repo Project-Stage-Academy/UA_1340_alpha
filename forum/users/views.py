@@ -14,8 +14,11 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import User
 from .serializers import CustomTokenObtainPairSerializer, UserSerializer
-from .utils import (send_reset_password_email, send_verification_email,
-                    validate_password_policy)
+from .utils import (
+    send_reset_password_email,
+    send_verification_email,
+    validate_password_policy,
+)
 
 logger = logging.getLogger(__name__)
 
