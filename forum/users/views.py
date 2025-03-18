@@ -4,11 +4,6 @@ import jwt
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
-from django.core.validators import validate_email
-from django.db import DatabaseError, IntegrityError
-from django.template.loader import render_to_string
-from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from django.utils.timezone import now
 from django.db import DatabaseError, IntegrityError
 from django.utils.http import urlsafe_base64_decode
 from rest_framework import status
@@ -19,11 +14,6 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from forum.tasks import send_email_task, send_email_task_no_ssl
-
-from .models import User
-from .serializers import CustomTokenObtainPairSerializer, UserSerializer
-from .utils import send_reset_password_email, validate_password_policy
 from .models import User
 from .serializers import CustomTokenObtainPairSerializer, UserSerializer
 from .utils import (

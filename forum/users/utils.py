@@ -13,15 +13,6 @@ from forum.tasks import send_email_task, send_email_task_no_ssl
 
 logger = logging.getLogger(__name__)
 
-from celery.exceptions import CeleryError
-from django.contrib.auth.tokens import default_token_generator
-from django.template.loader import render_to_string
-from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-
-from forum.tasks import send_email_task_no_ssl
-
-
 def validate_password_policy(password):
     """
     Validates the password against predefined complexity requirements.
