@@ -1,6 +1,7 @@
 import logging
-from datetime import timedelta
 
+import jwt
+from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.validators import validate_email
@@ -8,6 +9,8 @@ from django.db import DatabaseError, IntegrityError
 from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.timezone import now
+from django.db import DatabaseError, IntegrityError
+from django.utils.http import urlsafe_base64_decode
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -21,6 +24,13 @@ from forum.tasks import send_email_task, send_email_task_no_ssl
 from .models import User
 from .serializers import CustomTokenObtainPairSerializer, UserSerializer
 from .utils import send_reset_password_email, validate_password_policy
+from .models import User
+from .serializers import CustomTokenObtainPairSerializer, UserSerializer
+from .utils import (
+    send_reset_password_email,
+    send_verification_email,
+    validate_password_policy,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +105,6 @@ class ResetPasswordCompleteView(APIView):
     def get(self, request):
         return Response({"message": "Password reset process is complete."}, status=status.HTTP_200_OK)
 
-logger = logging.getLogger(__name__)
 
 class SignupView(APIView):
 
@@ -107,7 +116,7 @@ class SignupView(APIView):
                 user = serializer.save()
                 if user:
                     logger.info("User created successfully with id: %s", user.id)
-                    # send email here
+                    send_verification_email(user, request)
                     return Response(
                         {
                             "message": "User created successfully",
@@ -164,50 +173,124 @@ class SignupView(APIView):
 
         except Exception as e:
             logger.error("Failed to create user. An unexpected error occurred: %s", str(e))
-            return Response({
-                "error": "Failed to create user. An unexpected error occurred",
-                "details": str(e)
-            },
+            return Response(
+                {
+                    "error": "Failed to create user. An unexpected error occurred",
+                    "details": str(e)
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class SendEmailAPIView(APIView):
-    def post(self, request):
-        logger.info("SendEmailAPIView POST request received with data: %s", request.data)
-        subject = request.data.get("subject")
-        message = request.data.get("message")  # Plain text version
-        html_message = request.data.get("html_message")  # HTML version
-        recipient = request.data.get("recipient")  # List of emails
 
-        if not subject or not message or not recipient:
-            logger.error("Missing fields in request data")
-            return Response({"error": "Missing fields"}, status=status.HTTP_400_BAD_REQUEST)
+class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]
 
-        recipient_list = []
-        if isinstance(recipient, str):
-            recipient_list.append(recipient)
-        else:
-            logger.error("Recipient must be a string")
+    def get(self, request):
+        token = request.GET.get("token")
+        if not token:
+            logger.info("Token is required")
             return Response(
-                {"error": "recipient must be a string."},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"error": "Token is required"},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
-        for email in recipient_list:
-            try:
-                validate_email(email)
-            except ValidationError:
-                logger.error("Invalid email: %s", email)
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, settings.SIMPLE_JWT["ALGORITHM"])
+            user = User.objects.get(id=payload["user_id"])
+            user.is_email_confirmed = True
+            user.is_active = True
+            user.save()
+
+            return Response(
+                {"message": "Email verified successfully"},
+                status=status.HTTP_200_OK
+            )
+        except User.DoesNotExist:
+            logger.info("User not found")
+            return Response(
+                {"error": "User not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except jwt.ExpiredSignatureError:
+            logger.info("Token has expired")
+            return Response(
+                {"error": "Token has expired"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except jwt.InvalidTokenError:
+            logger.info("Invalid token")
+            return Response(
+                {"error": "Invalid token"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except DatabaseError as e:
+            logger.error(f"Database error: {e}")
+            return Response(
+                {"error": "Database error occurred"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            return Response(
+                {"error": "Unexpected error occurred"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class ResendVerificationEmailView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get("email")
+        if not email:
+            return Response(
+                {"message": "Email is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        logger.info("Requested email: %s", email)
+
+        try:
+            user = User.objects.get(email=email)
+
+            if user.is_email_confirmed:
+                logger.info("Email is already verified.")
                 return Response(
-                    {"error": f"Invalid email: {email}"},
-                    status=status.HTTP_400_BAD_REQUEST
+                    {"message": "Email is already verified."},
+                    status=status.HTTP_200_OK
                 )
 
-        send_email_task.delay(subject, message, recipient_list, html_message)
-        logger.info("Email task sent to queue with subject: %s", subject)
+            logger.info("Resending verification email %s", email)
+            success = send_verification_email(user, request)
 
-        return Response({"success": "HTML Email is being sent"}, status=status.HTTP_202_ACCEPTED)
-    
+            if success:
+                return Response(
+                    {"message": "Verification email was sent."},
+                    status=status.HTTP_200_OK
+                )
+            else:
+                logger.error(f"Failed to send verification email to {email}")
+                return Response(
+                    {"error": "Failed to send verification email."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+        except User.DoesNotExist:
+            logger.warning("Email verification requested for non-existent email: %s", email)
+            return Response(
+                {"error": "Email verification requested for non-existent email"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Failed to send verification email to {email}")
+            return Response(
+                {
+                    "error": "Failed to send verification email.",
+                    "details": str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
