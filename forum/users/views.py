@@ -7,9 +7,11 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import DatabaseError, IntegrityError
 from django.utils.http import urlsafe_base64_decode
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import User
@@ -282,3 +284,34 @@ class ResendVerificationEmailView(APIView):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+
+class LogoutAPIView(APIView):
+    """
+    API endpoint that allows users to log out by blacklisting their refresh token.
+    Requires the user to be authenticated.
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):
+        """
+        Handle POST request to blacklist the provided refresh token.
+        Args:
+            request: The HTTP request object containing the refresh token in the request data.
+        Returns:
+            A Response object with status 205 if successful, or 400 if an error occurs.
+        """
+        try:
+            refresh_token = request.data.get("refresh")
+            if not refresh_token:
+                return Response({"error": "Refresh token is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"message": "Successfully logged out."}, status=status.HTTP_205_RESET_CONTENT)
+        except TokenError:
+            return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
