@@ -3,7 +3,10 @@ services:
     build: .
     container_name: api
     restart: always
-    command: sh -c "sleep 5 && pylint forum/forum || true && python forum/manage.py migrate && python forum/manage.py runserver 0.0.0.0:8000"
+    command: sh -c "sleep 5 && pylint forum/forum || true &&
+                    python forum/manage.py migrate &&
+                    python forum/manage.py collectstatic --noinput &&
+                    python forum/manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/usr/src/
     ports:
@@ -12,6 +15,7 @@ services:
       - db
       - redis
     environment:
+      - IN_DOCKER=true
       - SECRET_KEY=${SECRET_KEY}
       - POSTGRES_HOST=${POSTGRES_HOST}
       - POSTGRES_PORT=${POSTGRES_PORT}
