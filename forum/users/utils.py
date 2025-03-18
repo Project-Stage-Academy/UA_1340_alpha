@@ -13,7 +13,6 @@ from forum.tasks import send_email_task, send_email_task_no_ssl
 
 logger = logging.getLogger(__name__)
 
-
 def validate_password_policy(password):
     """
     Validates the password against predefined complexity requirements.

@@ -118,6 +118,7 @@ INSTALLED_APPS = [
     'communications',
     'dashboard',
     'storages',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -233,6 +234,18 @@ SIMPLE_JWT = {
     "TOKEN_BLACKLIST_SERIALIZER": "rest_framework_simplejwt.serializers.TokenBlacklistSerializer",
     "SLIDING_TOKEN_OBTAIN_SERIALIZER": "rest_framework_simplejwt.serializers.TokenObtainSlidingSerializer",
     "SLIDING_TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
+}
+
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'description': 'Enter token as: Bearer <your_token>',
+        },
+    },
+    'USE_SESSION_AUTH': False,
 }
 
 # Internationalization

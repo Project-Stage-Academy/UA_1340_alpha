@@ -1,6 +1,6 @@
 from rest_framework import serializers
-from startups.serializers import StartupProfileSerializer
 
+from startups.serializers import StartupProfileSerializer
 from .models import Project
 
 
