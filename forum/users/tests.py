@@ -1,11 +1,17 @@
-from unittest.mock import patch
+import logging
+from unittest.mock import ANY, patch
 
-from django.test import TestCase
-
-# Create your tests here.
+import jwt
+from django.db import DatabaseError
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
+from rest_framework_simplejwt.tokens import AccessToken
+
+from .models import User
+
+logger = logging.getLogger(__name__)
+
 
 class SignupViewTests(APITestCase):
 
@@ -124,3 +130,123 @@ class SignupViewTests(APITestCase):
         response = self.client.post(self.url, invalid_role_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('role', response.data)
+
+
+class VerifyEmailViewTests(APITestCase):
+
+    def setUp(self):
+        self.url = reverse('verify-email')
+
+    def test_verify_email_without_token_returns_400(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['error'], "Token is required")
+
+    def test_verify_email_with_expired_token_returns_400(self):
+        expired_token = 'expired_token_example'
+
+        with patch("jwt.decode", side_effect=jwt.ExpiredSignatureError):
+            response = self.client.get(self.url, {'token': expired_token})
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+            self.assertEqual(response.data['error'], "Token has expired")
+
+    def test_verify_email_with_malformed_token_returns_400(self):
+        malformed_token = 'malformed_token_example'
+
+        with patch("jwt.decode", side_effect=jwt.InvalidTokenError):
+            response = self.client.get(self.url, {'token': malformed_token})
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+            self.assertEqual(response.data['error'], "Invalid token")
+
+    def test_verify_email_with_valid_token_returns_200(self):
+        user = User.objects.create(email='test@example.com', is_email_confirmed=False, is_active=False)
+        valid_token = AccessToken.for_user(user)
+
+        response = self.client.get(self.url, {'token': str(valid_token)})
+        print(response)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['message'], "Email verified successfully")
+
+        user.refresh_from_db()
+        self.assertTrue(user.is_email_confirmed)
+        self.assertTrue(user.is_active)
+
+    def test_verify_email_with_valid_token_user_not_found_returns_404(self):
+        valid_token = 'valid_token_example'
+
+        with patch("jwt.decode", return_value={"user_id": 999999}):
+            response = self.client.get(self.url, {'token': valid_token})
+            print(response)
+            self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+            self.assertEqual(response.data['error'], "User not found")
+
+    def test_verify_email_unexpected_exception_returns_500(self):
+        valid_token = 'valid_token_example'
+
+        with patch("jwt.decode", return_value={"user_id": 1}), \
+                patch('users.models.User.objects.get', side_effect=Exception("Unexpected error")):
+            response = self.client.get(self.url, {'token': valid_token})
+            print(response)
+            self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+            self.assertEqual(response.data['error'], "Unexpected error occurred")
+
+    def test_verify_email_database_error_returns_500(self):
+        valid_token = 'valid_token_example'
+
+        with patch("jwt.decode", return_value={"user_id": 1}), \
+                patch('users.models.User.objects.get', side_effect=DatabaseError("Database connection failed")):
+            response = self.client.get(self.url, {'token': valid_token})
+            print(response)
+            self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+            self.assertEqual(response.data['error'], "Database error occurred")
+
+
+class ResendVerificationEmailViewTests(APITestCase):
+
+    def setUp(self):
+        self.url = reverse('resend-verification-email')
+        self.email = 'test@example.com'
+        self.user = User.objects.create(email=self.email, is_email_confirmed=False)
+
+    def test_resend_verification_email_with_valid_email_returns_200(self):
+        with patch('users.views.send_verification_email', return_value=True) as mock_send_email:
+            response = self.client.post(self.url, {'email': self.email}, format='json')
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data['message'], 'Verification email was sent.')
+            mock_send_email.assert_called_once_with(self.user, ANY)
+
+    def test_resend_verification_email_missing_email_returns_400(self):
+        response = self.client.post(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['message'], 'Email is required')
+
+    def test_resend_verification_email_non_existent_user_returns_404(self):
+        non_existent_email_data = {'email': 'nonexistent@example.com'}
+
+        response = self.client.post(self.url, non_existent_email_data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data['error'], "Email verification requested for non-existent email")
+
+    def test_resend_verification_email_unexpected_exception_returns_500(self):
+        with patch('users.models.User.objects.get', side_effect=Exception("Unexpected error")):
+            response = self.client.post(self.url, {'email': self.email}, format='json')
+
+            self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+            self.assertEqual(response.data['error'], "Failed to send verification email.")
+            self.assertIn('details', response.data)
+
+    def test_resend_verification_email_service_failure_returns_500(self):
+        with patch('users.views.send_verification_email', return_value=False):
+            response = self.client.post(self.url, {'email': self.email}, format='json')
+            self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+            self.assertEqual(response.data['error'], "Failed to send verification email.")
+
+    def test_resend_verification_email_confirmed_user_returns_200(self):
+        self.user.is_email_confirmed = True
+        self.user.save()
+
+        with patch('users.views.send_verification_email', return_value=True) as mock_send_email:
+            response = self.client.post(self.url, {'email': self.email}, format='json')
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data['message'], 'Email is already verified.')

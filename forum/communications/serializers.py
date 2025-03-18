@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from .models import *
 from users.serializers import UserSerializer
+
+from .models import *
 
 
 class CommunicationsSerializer(serializers.ModelSerializer):

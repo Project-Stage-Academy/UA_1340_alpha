@@ -1,10 +1,15 @@
 import random
+
 from django.core.management.base import BaseCommand
 from faker import Faker
-from users.models import User
-from startups.models import StartupProfile, Industry
-from investors.models import InvestorProfile, InvestorPreferredIndustry, InvestorSavedStartup
+from investors.models import (
+    InvestorPreferredIndustry,
+    InvestorProfile,
+    InvestorSavedStartup,
+)
 from projects.models import Project
+from startups.models import Industry, StartupProfile
+from users.models import User
 
 fake = Faker()
 
