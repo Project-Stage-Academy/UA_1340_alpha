@@ -8,6 +8,7 @@ from django.core.validators import (
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import User
 
@@ -40,6 +41,28 @@ class UserSerializer(serializers.ModelSerializer):
             },
         }
 
+    def validate(self, attrs):
+        """
+        Validate that at least one of 'is_investor' or 'is_startup' is True.
+
+        This method checks the provided attributes to ensure that the user 
+        is either an investor or a startup. If both fields are False, 
+        a ValidationError is raised.
+
+        Args:
+            attrs (dict): The validated attributes from the serializer.
+
+        Returns:
+            dict: The validated attributes if the validation passes.
+
+        Raises:
+            ValidationError: If neither 'is_investor' nor 'is_startup' is True.
+        """
+        if not attrs.get('is_investor') and not attrs.get('is_startup'):
+            raise ValidationError("At least one of 'is_investor' or 'is_startup' must be True.")
+        return attrs
+
+
     def create(self, validated_data):
 
         email = validated_data.pop('email')
@@ -52,7 +75,7 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
         return user
-    
+
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
@@ -89,11 +112,14 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         if selected_role == "investor" and not user.is_investor:
             raise ValidationError({"role": "You are not registered as an investor."})
 
-        data["email"] = user.email
-        data["role"] = selected_role
+        refresh = RefreshToken.for_user(user)
+
+        refresh.payload["email"] = user.email
+        refresh.payload["role"] = selected_role
+
+        data["access"] = str(refresh.access_token)
+        data["refresh"] = str(refresh)
 
         logger.info("Token issued for user: %s with selected role: %s", user.email, selected_role)
 
         return data
-
-
