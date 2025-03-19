@@ -1,10 +1,17 @@
 import random
+
+from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand
 from faker import Faker
-from users.models import User
-from startups.models import StartupProfile, Industry
-from investors.models import InvestorProfile, InvestorPreferredIndustry, InvestorSavedStartup
+
+from investors.models import (
+    InvestorPreferredIndustry,
+    InvestorProfile,
+    InvestorSavedStartup,
+)
 from projects.models import Project
+from startups.models import Industry, StartupProfile
+from users.models import User
 
 fake = Faker()
 
@@ -25,7 +32,7 @@ class Command(BaseCommand):
         users = [
             User(
                 email=fake.email(),
-                password="password123",
+                password=make_password("password123"),
                 first_name=fake.first_name(),
                 last_name=fake.last_name(),
                 role=random.choice(['startup', 'investor']),

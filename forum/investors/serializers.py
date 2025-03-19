@@ -2,10 +2,15 @@ from django.db.models import Sum
 from rest_framework import serializers
 
 from projects.models import Project
-from .models import InvestorProfile, InvestorPreferredIndustry, InvestorSavedStartup, InvestorTrackedProject
-from startups.serializers import StartupProfileSerializer, IndustrySerializer
 from projects.serializers import ProjectSerializer
+from startups.serializers import IndustrySerializer, StartupProfileSerializer
 from users.serializers import UserSerializer
+from .models import (
+    InvestorPreferredIndustry,
+    InvestorProfile,
+    InvestorSavedStartup,
+    InvestorTrackedProject,
+)
 
 
 class InvestorProfileSerializer(serializers.ModelSerializer):
