@@ -3,8 +3,14 @@ from rest_framework import status
 from startups.models import Industry, StartupProfile
 from users.models import User
 from projects.models import Project
-from investors.models import InvestorProfile, InvestorPreferredIndustry, InvestorSavedStartup, InvestorTrackedProject
-from investors.views import *
+from investors.models import InvestorProfile, InvestorPreferredIndustry, InvestorTrackedProject
+from investors.views import (InvestorProfileApiView,
+                             InvestorProfileDetailApiView,
+                             InvestorPreferredIndustryApiView,
+                             InvestorPreferredIndustryDetailApiView,
+                             InvestorTrackedProjectApiView,
+                             InvestorTrackedProjectDetailApiView)
+
 
 class InvestorProfileApiTests(APITestCase):
 
@@ -230,124 +236,6 @@ class InvestorPreferredIndustryApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
         self.assertFalse(InvestorPreferredIndustry.objects.filter(pk=self.investor_preferred_industry.id).exists())
-
-class InvestorSavedStartupApiTests(APITestCase):
-
-    def setUp(self):
-        """
-        Set up the test environment.
-        """
-        self.user = User.objects.create_user(
-            first_name="testuser",
-            last_name="testuser",
-            password="testpassword",
-            email="test@example.com",
-            role="investor"
-        )
-
-        self.investor_profile = InvestorProfile.objects.create(
-            user=self.user,
-            company_name="Test Company",
-            investment_focus="Technology",
-            contact_email="test@example.com",
-            investment_range="100000-500000"
-        )
-
-        self.startup_profile = StartupProfile.objects.create(
-            user=self.user,
-            company_name="Startup One",
-            description="An innovative startup.",
-            contact_email="test@example.com",
-        )
-
-        self.saved_startup = InvestorSavedStartup.objects.create(
-            investor=self.investor_profile,
-            startup=self.startup_profile
-        )
-
-        self.factory = APIRequestFactory()
-
-    def test_get_investor_saved_startups(self):
-        """
-        Test: Retrieve a list of saved startups.
-        """
-        view = InvestorSavedStartupApiView.as_view()
-
-        request = self.factory.get('/api/investors/investor-saved-startups/')
-        force_authenticate(request, user=self.user)
-
-        response = view(request)
-        # print(response.data)  # For debugging
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]['investor']['id'], self.investor_profile.id)
-        self.assertEqual(response.data[0]['startup']['id'], self.startup_profile.id)
-
-    def test_create_investor_saved_startup(self):
-        """
-        Test: Create a new saved startup.
-        """
-        view = InvestorSavedStartupApiView.as_view()
-
-        new_user = User.objects.create_user(
-            first_name="newuser",
-            last_name="newuser",
-            password="newpassword",
-            email="newuser@example.com",
-            role="startup"
-        )
-
-        new_startup = StartupProfile.objects.create(
-            user=new_user,
-            company_name="Startup Two",
-            description="Another innovative startup.",
-            contact_email="startuptwo@example.com"
-        )
-
-        payload = {
-            "investor": self.investor_profile.id,
-            "startup": new_startup.id
-        }
-
-        request = self.factory.post('/api/investors/investor-saved-startups/', payload)
-        force_authenticate(request, user=self.user)
-
-        response = view(request)
-        # print(response.data)  # For debugging
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data['investor'], self.investor_profile.id)
-        self.assertEqual(response.data['startup'], new_startup.id)
-
-    def test_get_investor_saved_startup_detail(self):
-        """
-        Test: Retrieve detailed information about a saved startup.
-        """
-        view = InvestorSavedStartupDetailApiView.as_view()
-
-        request = self.factory.get(f'/api/investors/investor-saved-startups/{self.saved_startup.id}/')
-        force_authenticate(request, user=self.user)
-
-        response = view(request, pk=self.saved_startup.id)
-        # print(response.data)  # For debugging
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['investor']['id'], self.investor_profile.id)
-        self.assertEqual(response.data['startup']['id'], self.startup_profile.id)
-
-    def test_delete_investor_saved_startup(self):
-        """
-        Test: Delete an existing saved startup.
-        """
-        view = InvestorSavedStartupDetailApiView.as_view()
-
-        request = self.factory.delete(f'/api/investors/investor-saved-startups/{self.saved_startup.id}/')
-        force_authenticate(request, user=self.user)
-
-        response = view(request, pk=self.saved_startup.id)
-        # print(response.data)  # For debugging
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-
-        self.assertFalse(InvestorSavedStartup.objects.filter(pk=self.saved_startup.id).exists())
-
 
 class InvestorTrackedProjectApiTests(APITestCase):
 

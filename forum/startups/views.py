@@ -1,13 +1,18 @@
+from rest_framework.generics import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+
 from .models import StartupProfile
 from .serializers import StartupProfileSerializer, CreateStartupProfileSerializer
 
 
 class StartupProfileListCreateAPIView(APIView):
+    permission_classes = (IsAuthenticated,)
     """
     API for managing startup profiles.
 
@@ -19,6 +24,7 @@ class StartupProfileListCreateAPIView(APIView):
     @swagger_auto_schema(
         operation_summary="Retrieve all startups",
         operation_description="Get a list of all startup profiles available in the system.",
+        tags=["Startups"],
         responses={200: StartupProfileSerializer(many=True)}
     )
     def get(self, request):
@@ -36,6 +42,7 @@ class StartupProfileListCreateAPIView(APIView):
         operation_summary="Create a startup profile",
         operation_description="Create a new startup profile by providing the necessary details.",
         request_body=CreateStartupProfileSerializer,
+        tags=["Startups"],
         responses={
             201: StartupProfileSerializer,
             400: "Bad Request: Invalid input data."
@@ -65,6 +72,7 @@ class StartupProfileListCreateAPIView(APIView):
 
 
 class StartupProfileDetailAPIView(APIView):
+    permission_classes = (IsAuthenticated,)
     """
     API for managing a specific startup profile.
 
@@ -85,14 +93,12 @@ class StartupProfileDetailAPIView(APIView):
             - StartupProfile: The startup profile instance.
             - None: If the startup profile does not exist.
         """
-        try:
-            return StartupProfile.objects.get(pk=pk)
-        except StartupProfile.DoesNotExist:
-            return None
+        return get_object_or_404(StartupProfile, pk=pk)
 
     @swagger_auto_schema(
         operation_summary="Retrieve a specific startup",
         operation_description="Retrieve the details of a specific startup profile by its ID.",
+        tags=["Startups"],
         manual_parameters=[
             openapi.Parameter(
                 'pk',
@@ -127,6 +133,7 @@ class StartupProfileDetailAPIView(APIView):
     @swagger_auto_schema(
         operation_summary="Update a startup profile",
         operation_description="Update the details of a startup profile by its ID.",
+        tags=["Startups"],
         manual_parameters=[
             openapi.Parameter(
                 'pk',
@@ -166,37 +173,3 @@ class StartupProfileDetailAPIView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @swagger_auto_schema(
-        operation_summary="Delete a startup profile",
-        operation_description="Delete a specific startup profile by its ID.",
-        manual_parameters=[
-            openapi.Parameter(
-                'pk',
-                openapi.IN_PATH,
-                description="ID of the startup profile",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            )
-        ],
-        responses={
-            204: "Startup profile deleted successfully.",
-            404: "Startup not found."
-        }
-    )
-    def delete(self, request, pk):
-        """
-        Delete a specific startup profile.
-
-        Path Parameters:
-            - pk (int): The ID of the startup profile to delete.
-
-        Responses:
-            - 204 No Content: Successfully deletes the startup profile.
-            - 404 Not Found: If the startup profile does not exist.
-        """
-        startup = self.get_object(pk)
-        if startup is None:
-            return Response({"error": "Startup not found"}, status=status.HTTP_404_NOT_FOUND)
-        startup.delete()
-        return Response({"message": "Startup deleted successfully"}, status=status.HTTP_204_NO_CONTENT)

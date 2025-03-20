@@ -112,17 +112,3 @@ class ProjectApiTests(APITestCase):
         # print(response.data)  # For debugging
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['title'], payload['title'])
-
-    def test_delete_project(self):
-        """
-        Test: deleting an existing project.
-        """
-        view = ProjectDetailAPIView.as_view()
-
-        request = self.factory.delete(f'/api/projects/{self.project.id}/')
-        force_authenticate(request, user=self.user)
-
-        response = view(request, pk=self.project.id)
-        # print(response.data)  # For debugging
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(Project.objects.filter(pk=self.project.id).exists())

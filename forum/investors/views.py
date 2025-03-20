@@ -1,6 +1,9 @@
+from rest_framework.generics import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+
 from .models import (
     InvestorProfile,
     InvestorPreferredIndustry,
@@ -17,11 +20,12 @@ from .serializers import (
     InvestorTrackedProjectSerializer,
     CreateInvestorTrackedProjectSerializer
 )
+
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-
 class InvestorProfileApiView(APIView):
+    permission_classes = (IsAuthenticated,)
     """
     API for managing investor profiles.
 
@@ -33,6 +37,7 @@ class InvestorProfileApiView(APIView):
     @swagger_auto_schema(
         operation_summary="Retrieve all investor profiles",
         operation_description="Get a list of all investor profiles in the system.",
+        tags=["Investors"],
         responses={200: InvestorProfileSerializer(many=True)}
     )
     def get(self, request):
@@ -49,12 +54,14 @@ class InvestorProfileApiView(APIView):
     @swagger_auto_schema(
         operation_summary="Create a new investor profile",
         operation_description="Create a new investor profile with the required fields.",
+        tags=["Investors"],
         request_body=CreateInvestorProfileSerializer,
         responses={
             201: InvestorProfileSerializer,
             400: "Bad Request: Invalid input data.",
         }
     )
+
     def post(self, request):
         """
         Create a new investor profile.
@@ -76,8 +83,8 @@ class InvestorProfileApiView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 class InvestorProfileDetailApiView(APIView):
+    permission_classes = (IsAuthenticated,)
     """
     API for managing a specific investor profile by ID.
 
@@ -98,14 +105,12 @@ class InvestorProfileDetailApiView(APIView):
             - InvestorProfile: The investor profile instance if found.
             - Response: A 404 error response if the profile does not exist.
         """
-        try:
-            return InvestorProfile.objects.get(pk=pk)
-        except InvestorProfile.DoesNotExist:
-            return Response({"error": "Investor profile not found"}, status=status.HTTP_404_NOT_FOUND)
+        return get_object_or_404(InvestorProfile, pk=pk)
 
     @swagger_auto_schema(
         operation_summary="Retrieve an investor profile",
         operation_description="Retrieve the details of a specific investor profile by its ID.",
+        tags=["Investors"],
         manual_parameters=[
             openapi.Parameter('pk', openapi.IN_PATH, description="ID of the investor profile", type=openapi.TYPE_INTEGER)
         ],
@@ -134,6 +139,7 @@ class InvestorProfileDetailApiView(APIView):
     @swagger_auto_schema(
         operation_summary="Update an investor profile",
         operation_description="Update the details of an investor profile by its ID.",
+        tags=["Investors"],
         manual_parameters=[
             openapi.Parameter('pk', openapi.IN_PATH, description="ID of the investor profile", type=openapi.TYPE_INTEGER)
         ],
@@ -171,6 +177,7 @@ class InvestorProfileDetailApiView(APIView):
     @swagger_auto_schema(
         operation_summary="Delete an investor profile",
         operation_description="Delete a specific investor profile by its ID.",
+        tags=["Investors"],
         manual_parameters=[
             openapi.Parameter('pk', openapi.IN_PATH, description="ID of the investor profile", type=openapi.TYPE_INTEGER)
         ],
@@ -197,8 +204,8 @@ class InvestorProfileDetailApiView(APIView):
         return Response({"message": "Profile deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
 
-
 class InvestorPreferredIndustryApiView(APIView):
+    permission_classes = (IsAuthenticated,)
     """
     API for managing investor preferred industries.
 
@@ -210,6 +217,7 @@ class InvestorPreferredIndustryApiView(APIView):
     @swagger_auto_schema(
         operation_summary="Retrieve all preferred industries",
         operation_description="Get a list of all investor preferred industries.",
+        tags=["Investors"],
         responses={200: InvestorPreferredIndustrySerializer(many=True)}
     )
     def get(self, request):
@@ -226,6 +234,7 @@ class InvestorPreferredIndustryApiView(APIView):
     @swagger_auto_schema(
         operation_summary="Create a preferred industry",
         operation_description="Create a new preferred industry for an investor by providing the required data.",
+        tags=["Investors"],
         request_body=CreateInvestorPreferredIndustrySerializer,
         responses={
             201: InvestorPreferredIndustrySerializer,
@@ -251,6 +260,7 @@ class InvestorPreferredIndustryApiView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class InvestorPreferredIndustryDetailApiView(APIView):
+    permission_classes = (IsAuthenticated,)
     """
     API for managing a specific investor preferred industry by ID.
 
@@ -270,14 +280,12 @@ class InvestorPreferredIndustryDetailApiView(APIView):
             - InvestorPreferredIndustry: The preferred industry instance if found.
             - Response: A 404 error response if the industry does not exist.
         """
-        try:
-            return InvestorPreferredIndustry.objects.get(pk=pk)
-        except InvestorPreferredIndustry.DoesNotExist:
-            return Response({"error": "Preferred industry not found"}, status=status.HTTP_404_NOT_FOUND)
+        return get_object_or_404(InvestorPreferredIndustry, pk=pk)
 
     @swagger_auto_schema(
         operation_summary="Retrieve a preferred industry",
         operation_description="Retrieve the details of a specific preferred industry by its ID.",
+        tags=["Investors"],
         manual_parameters=[
             openapi.Parameter(
                 'pk',
@@ -312,6 +320,7 @@ class InvestorPreferredIndustryDetailApiView(APIView):
     @swagger_auto_schema(
         operation_summary="Delete a preferred industry",
         operation_description="Delete a specific preferred industry by its ID.",
+        tags=["Investors"],
         manual_parameters=[
             openapi.Parameter(
                 'pk',
@@ -343,154 +352,8 @@ class InvestorPreferredIndustryDetailApiView(APIView):
         industry.delete()
         return Response({"message": "Industry deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
-
-class InvestorSavedStartupApiView(APIView):
-    """
-    API for managing investor saved startups.
-
-    Endpoints:
-    - GET: Retrieve all saved startups.
-    - POST: Save a new startup for an investor.
-    """
-
-    @swagger_auto_schema(
-        operation_summary="Retrieve all saved startups",
-        operation_description="Get a list of all startups saved by investors.",
-        responses={200: InvestorSavedStartupSerializer(many=True)}
-    )
-    def get(self, request):
-        """
-        Retrieve a list of all saved startups.
-
-        Responses:
-            - 200 OK: Successfully returns a list of saved startups.
-        """
-        saved_startups = InvestorSavedStartup.objects.all()
-        serializer = InvestorSavedStartupSerializer(saved_startups, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    @swagger_auto_schema(
-        operation_summary="Save a new startup",
-        operation_description="Save a new startup for an investor by providing the required data.",
-        request_body=CreateInvestorSavedStartupSerializer,
-        responses={
-            201: InvestorSavedStartupSerializer,
-            400: "Bad Request: Invalid input data."
-        }
-    )
-    def post(self, request):
-        """
-        Save a new startup to an investor's list.
-
-        Request Body:
-            - investor (int): ID of the investor (required).
-            - startup (int): ID of the startup to save (required).
-
-        Responses:
-            - 201 Created: Successfully saves the startup.
-            - 400 Bad Request: If the input data is invalid.
-        """
-        serializer = CreateInvestorSavedStartupSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class InvestorSavedStartupDetailApiView(APIView):
-    """
-    API for managing a specific saved startup by ID.
-
-    Endpoints:
-    - GET: Retrieve a specific saved startup.
-    - DELETE: Delete a saved startup.
-    """
-
-    def get_object(self, pk):
-        """
-        Retrieve a saved startup by its ID.
-
-        Args:
-            - pk (int): The primary key of the saved startup.
-
-        Returns:
-            - InvestorSavedStartup: The saved startup instance if found.
-            - Response: A 404 error response if the saved startup does not exist.
-        """
-        try:
-            return InvestorSavedStartup.objects.get(pk=pk)
-        except InvestorSavedStartup.DoesNotExist:
-            return Response({"error": "Saved startup not found"}, status=status.HTTP_404_NOT_FOUND)
-
-    @swagger_auto_schema(
-        operation_summary="Retrieve a saved startup",
-        operation_description="Retrieve the details of a specific saved startup by its ID.",
-        manual_parameters=[
-            openapi.Parameter(
-                'pk',
-                openapi.IN_PATH,
-                description="ID of the saved startup",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            )
-        ],
-        responses={
-            200: InvestorSavedStartupSerializer,
-            404: "Saved startup not found."
-        }
-    )
-    def get(self, request, pk):
-        """
-        Retrieve a specific saved startup by ID.
-
-        Path Parameters:
-            - pk (int): The ID of the saved startup to retrieve.
-
-        Responses:
-            - 200 OK: Successfully retrieves the saved startup details.
-            - 404 Not Found: If the saved startup does not exist.
-        """
-        saved_startup = self.get_object(pk)
-        if isinstance(saved_startup, Response):  # Handle case where saved_startup is a 404 Response
-            return saved_startup
-        serializer = InvestorSavedStartupSerializer(saved_startup)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    @swagger_auto_schema(
-        operation_summary="Delete a saved startup",
-        operation_description="Delete a specific saved startup by its ID.",
-        manual_parameters=[
-            openapi.Parameter(
-                'pk',
-                openapi.IN_PATH,
-                description="ID of the saved startup",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            )
-        ],
-        responses={
-            204: "Saved startup deleted successfully.",
-            404: "Saved startup not found."
-        }
-    )
-    def delete(self, request, pk):
-        """
-        Delete a specific saved startup by ID.
-
-        Path Parameters:
-            - pk (int): The ID of the saved startup to delete.
-
-        Responses:
-            - 204 No Content: Successfully deletes the saved startup.
-            - 404 Not Found: If the saved startup does not exist.
-        """
-        saved_startup = self.get_object(pk)
-        if isinstance(saved_startup, Response):  # Handle case where saved_startup is a 404 Response
-            return saved_startup
-        saved_startup.delete()
-        return Response({"message": "Saved startup deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
-
-
 class InvestorTrackedProjectApiView(APIView):
+    permission_classes = (IsAuthenticated,)
     """
     API for managing investor-tracked projects.
 
@@ -502,6 +365,7 @@ class InvestorTrackedProjectApiView(APIView):
     @swagger_auto_schema(
         operation_summary="Retrieve all tracked projects",
         operation_description="Get a list of all projects tracked by investors.",
+        tags=["Investors"],
         responses={200: InvestorTrackedProjectSerializer(many=True)}
     )
     def get(self, request):
@@ -518,6 +382,7 @@ class InvestorTrackedProjectApiView(APIView):
     @swagger_auto_schema(
         operation_summary="Add a tracked project",
         operation_description="Add a new project to the list of tracked projects for an investor.",
+        tags=["Investors"],
         request_body=CreateInvestorTrackedProjectSerializer,
         responses={
             201: InvestorTrackedProjectSerializer,
@@ -543,6 +408,7 @@ class InvestorTrackedProjectApiView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class InvestorTrackedProjectDetailApiView(APIView):
+    permission_classes = (IsAuthenticated,)
     """
     API for managing a specific tracked project by ID.
 
@@ -562,14 +428,12 @@ class InvestorTrackedProjectDetailApiView(APIView):
             - InvestorTrackedProject: The tracked project instance if found.
             - None: If the tracked project does not exist.
         """
-        try:
-            return InvestorTrackedProject.objects.get(pk=pk)
-        except InvestorTrackedProject.DoesNotExist:
-            return Response({"error": "Tracked project not found"}, status=status.HTTP_404_NOT_FOUND)
+        return get_object_or_404(InvestorTrackedProject, pk=pk)
 
     @swagger_auto_schema(
         operation_summary="Retrieve a tracked project",
         operation_description="Retrieve the details of a specific tracked project by its ID.",
+        tags=["Investors"],
         manual_parameters=[
             openapi.Parameter(
                 'pk',
@@ -604,6 +468,7 @@ class InvestorTrackedProjectDetailApiView(APIView):
     @swagger_auto_schema(
         operation_summary="Delete a tracked project",
         operation_description="Remove a tracked project from the investor's list by its ID.",
+        tags=["Investors"],
         manual_parameters=[
             openapi.Parameter(
                 'pk',

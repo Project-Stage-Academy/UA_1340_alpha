@@ -114,17 +114,3 @@ class StartupProfileApiTests(APITestCase):
         # print(response.data)  # For debugging
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['company_name'], payload['company_name'])
-
-    def test_delete_startup(self):
-        """
-        Test: delete an existing startup.
-        """
-        view = StartupProfileDetailAPIView.as_view()
-
-        request = self.factory.delete(f'/api/startups/{self.startup.id}/')
-        force_authenticate(request, user=self.user)
-
-        response = view(request, pk=self.startup.id)
-        # print(response.data)  # For debugging
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(StartupProfile.objects.filter(pk=self.startup.id).exists())

@@ -1,13 +1,17 @@
+from rest_framework.generics import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+
 from .models import Project
 from .serializers import ProjectSerializer, CreateProjectSerializer, UpdateProjectSerializer
 
-
 class ProjectListCreateAPIView(APIView):
+    permission_classes = (IsAuthenticated,)
     """
     API for managing projects.
 
@@ -19,6 +23,7 @@ class ProjectListCreateAPIView(APIView):
     @swagger_auto_schema(
         operation_summary="Retrieve all projects",
         operation_description="Get a list of all projects available in the system.",
+        tags=["Projects"],
         responses={200: ProjectSerializer(many=True)}
     )
     def get(self, request):
@@ -35,6 +40,7 @@ class ProjectListCreateAPIView(APIView):
     @swagger_auto_schema(
         operation_summary="Create a new project",
         operation_description="Create a new project by providing the necessary details.",
+        tags=["Projects"],
         request_body=CreateProjectSerializer,
         responses={
             201: ProjectSerializer,
@@ -68,6 +74,7 @@ class ProjectListCreateAPIView(APIView):
 
 
 class ProjectDetailAPIView(APIView):
+    permission_classes = (IsAuthenticated,)
     """
     API for managing a specific project.
 
@@ -88,14 +95,12 @@ class ProjectDetailAPIView(APIView):
             - Project: The project instance if found.
             - None: If the project does not exist.
         """
-        try:
-            return Project.objects.get(pk=pk)
-        except Project.DoesNotExist:
-            return None
+        return get_object_or_404(Project, pk=pk)
 
     @swagger_auto_schema(
         operation_summary="Retrieve a specific project",
         operation_description="Retrieve the details of a specific project by its ID.",
+        tags=["Projects"],
         manual_parameters=[
             openapi.Parameter(
                 'pk',
@@ -130,6 +135,7 @@ class ProjectDetailAPIView(APIView):
     @swagger_auto_schema(
         operation_summary="Update a project",
         operation_description="Update the details of a project by its ID.",
+        tags=["Projects"],
         manual_parameters=[
             openapi.Parameter(
                 'pk',
@@ -170,36 +176,3 @@ class ProjectDetailAPIView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(
-        operation_summary="Delete a project",
-        operation_description="Delete a specific project by its ID.",
-        manual_parameters=[
-            openapi.Parameter(
-                'pk',
-                openapi.IN_PATH,
-                description="ID of the project",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            )
-        ],
-        responses={
-            204: "Project deleted successfully.",
-            404: "Project not found."
-        }
-    )
-    def delete(self, request, pk):
-        """
-        Delete a specific project.
-
-        Path Parameters:
-            - pk (int): The ID of the project to delete.
-
-        Responses:
-            - 204 No Content: Successfully deletes the project.
-            - 404 Not Found: If the project does not exist.
-        """
-        project = self.get_object(pk)
-        if project is None:
-            return Response({"error": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
-        project.delete()
-        return Response({"message": "Project deleted successfully"}, status=status.HTTP_204_NO_CONTENT)

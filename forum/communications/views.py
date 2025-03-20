@@ -1,14 +1,20 @@
+from django.db.models import Q
+
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+
 from .models import Communication
 from .serializers import CommunicationsSerializer, CreateCommunicationsSerializer
 
-
 class CommunicationsApiView(APIView):
+    permission_classes = (IsAuthenticated,)
+
     """
     API for managing communications.
 
@@ -20,6 +26,7 @@ class CommunicationsApiView(APIView):
     @swagger_auto_schema(
         operation_summary="Retrieve all communications",
         operation_description="Get a list of all communications.",
+        tags=["Communications"],
         responses={
             200: CommunicationsSerializer(many=True),
             500: "Internal Server Error: An error occurred while retrieving communications.",
@@ -46,6 +53,7 @@ class CommunicationsApiView(APIView):
     @swagger_auto_schema(
         operation_summary="Create a communication",
         operation_description="Create a new communication by providing a receiver and content.",
+        tags=["Communications"],
         request_body=CreateCommunicationsSerializer,
         responses={
             201: CreateCommunicationsSerializer,
@@ -83,6 +91,7 @@ class CommunicationsApiView(APIView):
 
 
 class CommunicationDetailApiView(APIView):
+    permission_classes = (IsAuthenticated,)
     """
     API for managing a specific communication by its ID.
 
@@ -95,6 +104,7 @@ class CommunicationDetailApiView(APIView):
     @swagger_auto_schema(
         operation_summary="Retrieve a communication",
         operation_description="Retrieve the details of a communication by its ID.",
+        tags=["Communications"],
         manual_parameters=[
             openapi.Parameter(
                 'communication_id',
@@ -123,12 +133,8 @@ class CommunicationDetailApiView(APIView):
             - 500 Internal Server Error: If an error occurs.
         """
         try:
-            communication = (
-                    Communication.objects.filter(
-                        id=communication_id, sender=request.user
-                    ) | Communication.objects.filter(
-                id=communication_id, receiver=request.user
-            )
+            communication = Communication.objects.filter(
+                Q(id=communication_id) & (Q(sender=request.user) | Q(receiver=request.user))
             ).first()
 
             if not communication:
@@ -148,6 +154,7 @@ class CommunicationDetailApiView(APIView):
     @swagger_auto_schema(
         operation_summary="Update a communication",
         operation_description="Update the content of an existing communication.",
+        tags=["Communications"],
         manual_parameters=[
             openapi.Parameter(
                 'communication_id',
@@ -183,8 +190,7 @@ class CommunicationDetailApiView(APIView):
         """
         try:
             communication = Communication.objects.filter(
-                id=communication_id, sender=request.user
-            ).first()
+                Q(id=communication_id) & (Q(sender=request.user))).first()
 
             if not communication:
                 return Response(
@@ -209,6 +215,7 @@ class CommunicationDetailApiView(APIView):
     @swagger_auto_schema(
         operation_summary="Delete a communication",
         operation_description="Delete a specific communication by its ID.",
+        tags=["Communications"],
         manual_parameters=[
             openapi.Parameter(
                 'communication_id',
@@ -239,7 +246,7 @@ class CommunicationDetailApiView(APIView):
             - 500 Internal Server Error: If an error occurs.
         """
         try:
-            communication = Communication.objects.filter(id=communication_id).first()
+            communication = Communication.objects.filter(Q(id=communication_id)).first()
 
             if not communication:
                 return Response(
