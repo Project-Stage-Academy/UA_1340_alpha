@@ -1,16 +1,18 @@
 import logging
 
+from django.db.models import Sum
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import status
+from rest_framework import status, permissions, generics
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from startups.models import StartupProfile
 from startups.serializers import StartupProfileSerializer
-from .models import InvestorProfile, InvestorSavedStartup
-from .serializers import CreateInvestorSavedStartupSerializer
+from .models import InvestorProfile, InvestorSavedStartup, InvestorTrackedProject
+from .serializers import CreateInvestorSavedStartupSerializer, SubscriptionSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +96,6 @@ class SavedStartupsApiView(APIView):
             )
 
 
-
 class CreateDeleteSavedStartupApiView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -148,11 +149,11 @@ class CreateDeleteSavedStartupApiView(APIView):
                     {"error": "Startup is already saved by the investor"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             logger.info(f"Startup {startup_id} successfully saved by investor {request.user}")
             serializer = CreateInvestorSavedStartupSerializer(saved_startup)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        
+
         except InvestorProfile.DoesNotExist:
             logger.error(f"Investor profile not found for user {request.user}")
             return Response(
@@ -208,7 +209,7 @@ class CreateDeleteSavedStartupApiView(APIView):
             logger.info(f"Attempting to delete startup {startup_id} from saved list for user {request.user}")
             investor_profile = InvestorProfile.objects.get(user=request.user)
             startup_profile = StartupProfile.objects.get(id=startup_id)
-    
+
             saved_startup = InvestorSavedStartup.objects.get(
                 investor=investor_profile,
                 startup=startup_profile
@@ -240,3 +241,73 @@ class CreateDeleteSavedStartupApiView(APIView):
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class SubscriptionCreateView(generics.CreateAPIView):
+    """
+    API endpoint to allow investors to subscribe to a project.
+
+    - Investors can subscribe by specifying a project and an investment share.
+    - Ensures that total funding does not exceed 100%.
+    - Returns the remaining available funding after subscription.
+    """
+    serializer_class = SubscriptionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    @swagger_auto_schema(
+        request_body=SubscriptionSerializer,
+        responses={
+            201: openapi.Response(
+                description="Subscription successful",
+                examples={
+                    "application/json": {
+                        "message": "Subscription successful.",
+                        "remaining_funding": 50
+                    }
+                }
+            ),
+            400: "Invalid input or exceeding funding limit",
+            403: "User is not an investor"
+        }
+    )
+    def perform_create(self, serializer):
+        """
+        Validates and creates an investor subscription.
+
+        - Ensures the user has an investor profile.
+        - Checks if the total funding exceeds 100% before saving.
+        - Returns a response indicating the remaining funding.
+        """
+        user = self.request.user
+
+        # Ensure the user has an investor profile
+        try:
+            investor = InvestorProfile.objects.get(user=user)
+        except InvestorProfile.DoesNotExist:
+            raise PermissionDenied("You must be an investor to subscribe to a project.")
+
+        # Get the project and investment share
+        project = serializer.validated_data['project']
+        new_share = serializer.validated_data['investment_share']
+
+        # Calculate the total current investment share
+        total_current_share = InvestorTrackedProject.objects.filter(project=project).aggregate(
+            total=Sum('share')
+        )['total'] or 0
+
+        # Validate that the new share does not exceed 100%
+        if total_current_share + new_share > 100:
+            raise ValidationError(
+                {"investment_share": "Project is fully funded or the investment exceeds the allowed share."}
+            )
+
+        # Save the subscription
+        serializer.save(investor=investor, share=new_share)
+
+        # Calculate remaining funding
+        remaining_funding = 100 - (total_current_share + new_share)
+
+        return Response({
+            "message": "Subscription successful.",
+            "remaining_funding": remaining_funding
+        }, status=201)

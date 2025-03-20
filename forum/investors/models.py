@@ -5,6 +5,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Sum
 
+from projects.models import Project
 from startups.models import Industry, StartupProfile
 from users.models import User
 
@@ -47,6 +48,13 @@ class InvestorSavedStartup(models.Model):
 
 
 class InvestorTrackedProject(models.Model):
+    """
+    Represents an investor's tracked project.
+
+    This model tracks the share of investment an investor has in a project.
+    It ensures that the total share of all investors for a project does not exceed 100%.
+    """
+
     investor = models.ForeignKey(InvestorProfile, on_delete=models.CASCADE, related_name='tracked_projects')
     project = models.ForeignKey('projects.Project', on_delete=models.CASCADE, related_name='investor_tracks')
     share = models.DecimalField(
@@ -65,10 +73,10 @@ class InvestorTrackedProject(models.Model):
 
     def clean(self):
         total_share = (
-            InvestorTrackedProject.objects.filter(project=self.project)
-            .exclude(pk=self.pk)
-            .aggregate(total=Sum('share'))['total'] or Decimal('0.00')
-        ) + self.share
+                              InvestorTrackedProject.objects.filter(project=self.project)
+                              .exclude(pk=self.pk)
+                              .aggregate(total=Sum('share'))['total'] or Decimal('0.00')
+                      ) + self.share
 
         if total_share > 100:
             raise ValidationError(
