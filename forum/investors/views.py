@@ -184,7 +184,7 @@ class InvestorProfileDetailApiView(APIView):
     @swagger_auto_schema(
         operation_summary="Delete an investor profile",
         operation_description="Delete a specific investor profile by its ID.",
-        tags=["investors"],
+        tags=["Investors"],
         manual_parameters=[
             openapi.Parameter('pk', openapi.IN_PATH, description="ID of the investor profile", type=openapi.TYPE_INTEGER)
         ],
@@ -512,7 +512,7 @@ class SavedStartupsApiView(APIView):
     permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
-        tags=["investors"],
+        tags=["Investors"],
         operation_summary="Retrieve all investor profiles",
         operation_description="Retrieve a list of startups saved by the authenticated investor with optional filtering.",
         manual_parameters=[
@@ -590,7 +590,7 @@ class CreateDeleteSavedStartupApiView(APIView):
     permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
-        tags=["investors"],
+        tags=["Investors"],
         operation_summary="Save startup to the saved startups list",
         operation_description="Save a startup to the authenticated investor's saved startups list.",
         manual_parameters=[
@@ -639,11 +639,11 @@ class CreateDeleteSavedStartupApiView(APIView):
                     {"error": "Startup is already saved by the investor"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             logger.info(f"Startup {startup_id} successfully saved by investor {request.user}")
             serializer = CreateInvestorSavedStartupSerializer(saved_startup)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        
+
         except InvestorProfile.DoesNotExist:
             logger.error(f"Investor profile not found for user {request.user}")
             return Response(
@@ -664,7 +664,7 @@ class CreateDeleteSavedStartupApiView(APIView):
             )
 
     @swagger_auto_schema(
-        tags=["investors"],
+        tags=["Investors"],
         operation_summary="Delete startup from saved startups list",
         operation_description="Delete a startup from the authenticated investor's saved startups list.",
         manual_parameters=[
@@ -685,11 +685,11 @@ class CreateDeleteSavedStartupApiView(APIView):
     def delete(self, request, startup_id):
         """
         Delete a startup from the authenticated investor's saved startups list.
-    
+
         Parameters:
         request (Request): The HTTP request object containing user authentication details.
         startup_id (int): The ID of the startup to be deleted.
-    
+
         Returns:
         Response: A Response object with a status code of 204 if successful.
                   If the investor or startup profile is not found, returns a 404 status with an error message.
@@ -699,7 +699,7 @@ class CreateDeleteSavedStartupApiView(APIView):
             logger.info(f"Attempting to delete startup {startup_id} from saved list for user {request.user}")
             investor_profile = InvestorProfile.objects.get(user=request.user)
             startup_profile = StartupProfile.objects.get(id=startup_id)
-    
+
             saved_startup = InvestorSavedStartup.objects.get(
                 investor=investor_profile,
                 startup=startup_profile

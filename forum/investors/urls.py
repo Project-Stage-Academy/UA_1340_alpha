@@ -9,6 +9,7 @@ from .views import (
     CreateDeleteSavedStartupApiView, SavedStartupsApiView
 )
 
+
 urlpatterns = [
     # Investor Profiles
     path('investor-profiles/', InvestorProfileApiView.as_view(), name='investor-profiles'),
@@ -22,6 +23,7 @@ urlpatterns = [
     path('investor-tracked-projects/', InvestorTrackedProjectApiView.as_view(), name='investor-tracked-projects'),
     path('investor-tracked-projects/<int:pk>/', InvestorTrackedProjectDetailApiView.as_view(), name='investor-tracked-project-detail'),
 
+    # Investor Saved Startups
     path('saved-startups/', SavedStartupsApiView.as_view(), name='saved-startups'),
     path('saved-startups/<int:startup_id>/', CreateDeleteSavedStartupApiView.as_view(), name='save-delete-startup'),
 ]

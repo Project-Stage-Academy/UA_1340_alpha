@@ -36,6 +36,7 @@ class CreateInvestorProfileSerializer(serializers.ModelSerializer):
         model = InvestorProfile
         fields = [
             'id',
+            'user',
             'company_name',
             'investment_focus',
             'contact_email',
