@@ -1,6 +1,7 @@
 from rest_framework.permissions import BasePermission
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
+
 class IsInvestor(BasePermission):
     """
     Allows access only to users with the 'investor' role.
