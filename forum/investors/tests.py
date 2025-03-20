@@ -53,6 +53,30 @@ class InvestorProfileApiTests(APITestCase):
         # Initialize the request factory
         self.factory = APIRequestFactory()
 
+    def test_create_investor_profile(self):
+        """
+        Test: Create a new investor profile.
+        """
+        view = InvestorProfileApiView.as_view()
+        payload = {
+            "company_name": "New Company",
+            "investment_focus": "Healthcare",
+            "contact_email": "new@example.com",
+            "investment_range": "200000-600000",
+        }
+
+        # Create a POST request
+        request = self.factory.post('/api/investors/investor-profiles/', payload)
+        print(request)
+        force_authenticate(request, user=self.user2)
+
+
+        response = view(request)
+        # print(response.data)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['company_name'], payload['company_name'])
+
     def test_get_investor_profiles(self):
         """
         Test: Retrieve a list of investor profiles.
@@ -68,27 +92,6 @@ class InvestorProfileApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['company_name'], self.investor_profile.company_name)
-
-    def test_create_investor_profile(self):
-        """
-        Test: Create a new investor profile.
-        """
-        view = InvestorProfileApiView.as_view()
-        payload = {
-            "company_name": "New Company",
-            "investment_focus": "Healthcare",
-            "contact_email": "new@example.com",
-            "investment_range": "200000-600000",
-        }
-
-        # Create a POST request
-        request = self.factory.post('/api/investors/investor-profiles/', payload)
-        force_authenticate(request, user=self.user2)
-
-        # Call the view
-        response = view(request)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data['company_name'], payload['company_name'])
 
     def test_get_investor_profile_detail(self):
         """

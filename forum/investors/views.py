@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from startups.models import StartupProfile
+from startups.serializers import StartupProfileSerializer
 from .models import (
     InvestorPreferredIndustry,
     InvestorProfile,
@@ -65,7 +66,6 @@ class InvestorProfileApiView(APIView):
             400: "Bad Request: Invalid input data.",
         }
     )
-
     def post(self, request):
         """
         Create a new investor profile.
