@@ -12,7 +12,8 @@ class Project(models.Model):
     ]
 
     id = models.AutoField(primary_key=True)
-    startup = models.ForeignKey(StartupProfile, on_delete=models.CASCADE, related_name='projects')
+    startup = models.ForeignKey(
+        StartupProfile, on_delete=models.CASCADE, related_name='projects')
     title = models.CharField(max_length=255)
     description = models.TextField()
     funding_goal = models.DecimalField(max_digits=10, decimal_places=2)
@@ -21,8 +22,10 @@ class Project(models.Model):
     duration = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    business_plan = models.FileField(upload_to='project_business_plans/', blank=True, null=True)
-    media_files = models.FileField(upload_to='project_media/', blank=True, null=True)
+    business_plan = models.FileField(
+        upload_to='project_business_plans/', blank=True, null=True)
+    media_files = models.FileField(
+        upload_to='project_media/', blank=True, null=True)
 
     def clean(self):
         """Ensure funding_needed is not greater than funding_goal"""

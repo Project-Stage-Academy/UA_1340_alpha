@@ -14,12 +14,12 @@ import logging.handlers
 import os
 from datetime import timedelta
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -46,6 +46,10 @@ CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 
+CELERY_TASK_DEFAULT_RETRY_DELAY = 60
+CELERY_TASK_MAX_RETRIES = 3
+
+# Logging settings
 LOG_DIR = os.path.join(BASE_DIR, 'logs')
 os.makedirs(LOG_DIR, exist_ok=True)
 
@@ -58,9 +62,9 @@ LOGGING = {
             'style': '{',
         },
         'simple': {
-            'format' : '{levelname} {message}',
+            'format': '{levelname} {message}',
             'style': '{',
-        },  
+        },
     },
     'handlers': {
         'console': {
@@ -69,7 +73,7 @@ LOGGING = {
             'formatter': 'simple',
         },
         'file': {
-            'level' : 'WARNING',
+            'level': 'WARNING',
             'class': 'logging.handlers.TimedRotatingFileHandler',
             'filename': os.path.join(LOG_DIR, 'forum.log'),
             'when': 'midnight',
@@ -82,7 +86,7 @@ LOGGING = {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
         },
-        'django.db.backends':{
+        'django.db.backends': {
             'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,
@@ -94,6 +98,7 @@ LOGGING = {
         },
     },
 }
+
 
 # Application definition
 
@@ -112,6 +117,8 @@ INSTALLED_APPS = [
     'projects',
     'communications',
     'dashboard',
+    'storages',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -129,7 +136,7 @@ ROOT_URLCONF = 'forum.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, "templates")],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -144,9 +151,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'forum.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+
+# Check if running inside Docker
+IN_DOCKER = os.environ.get("IN_DOCKER", "False").lower() == "true"
 
 DATABASES = {
     'default': {
@@ -154,7 +163,8 @@ DATABASES = {
         'NAME': os.environ.get('POSTGRES_DB'),
         'USER': os.environ.get('POSTGRES_USER'),
         'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-        'HOST': os.environ.get('POSTGRES_HOST'),
+        'HOST': os.environ.get('POSTGRES_HOST') if IN_DOCKER else 'localhost',
+        # Use 'db' in Docker, 'localhost' otherwise
         'PORT': os.environ.get('POSTGRES_PORT')
     },
 }
@@ -182,6 +192,9 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     )
 }
+
+# Specifies the custom User model for authentication
+AUTH_USER_MODEL = "users.User"
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=3),
@@ -215,12 +228,24 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_LIFETIME": timedelta(days=3),
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=7),
 
-    "TOKEN_OBTAIN_SERIALIZER": "rest_framework_simplejwt.serializers.TokenObtainPairSerializer",
+    "TOKEN_OBTAIN_SERIALIZER": "users.serializers.CustomTokenObtainPairSerializer",
     "TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSerializer",
     "TOKEN_VERIFY_SERIALIZER": "rest_framework_simplejwt.serializers.TokenVerifySerializer",
     "TOKEN_BLACKLIST_SERIALIZER": "rest_framework_simplejwt.serializers.TokenBlacklistSerializer",
     "SLIDING_TOKEN_OBTAIN_SERIALIZER": "rest_framework_simplejwt.serializers.TokenObtainSlidingSerializer",
     "SLIDING_TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
+}
+
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'description': 'Enter token as: Bearer <your_token>',
+        },
+    },
+    'USE_SESSION_AUTH': False,
 }
 
 # Internationalization
@@ -234,7 +259,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
@@ -245,19 +269,16 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Media files + AWS S3
-
-# AWS S3 Configuration
-AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
-AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
-AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
-
-# S3 Storage for media files
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-
-# Media files URL
-MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/'
-
 # set UTF-8 as default encoding
 DEFAULT_CHARSET = 'utf-8'
+
+# AWS S3 Configuration
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
+
+# S3 Storage for static and media files
+STATICFILES_STORAGE =  'forum.storages.StaticStorage'
+DEFAULT_FILE_STORAGE = 'forum.storages.MediaStorage'
+

@@ -1,6 +1,8 @@
 from rest_framework import serializers
-from .models import Industry, StartupProfile, StartupIndustry
+
 from users.serializers import UserSerializer
+from .models import Industry, StartupIndustry, StartupProfile
+
 
 class IndustrySerializer(serializers.ModelSerializer):
     class Meta:
