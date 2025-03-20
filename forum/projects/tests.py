@@ -1,9 +1,10 @@
-from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
 from rest_framework import status
-from users.models import User
-from startups.models import StartupProfile
+from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
+
 from projects.models import Project
-from projects.views import ProjectListCreateAPIView, ProjectDetailAPIView
+from projects.views import ProjectDetailAPIView, ProjectListCreateAPIView
+from startups.models import StartupProfile
+from users.models import User
 
 
 class ProjectApiTests(APITestCase):

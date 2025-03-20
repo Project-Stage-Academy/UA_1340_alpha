@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import CommunicationsApiView, CommunicationDetailApiView
+
+from .views import CommunicationDetailApiView, CommunicationsApiView
 
 urlpatterns = [
     path('', CommunicationsApiView.as_view(), name='communications-list-create'),

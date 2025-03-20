@@ -1,33 +1,30 @@
 import logging
 
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import status
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.views import APIView
 
 from startups.models import StartupProfile
-
 from .models import (
-    InvestorProfile,
     InvestorPreferredIndustry,
+    InvestorProfile,
     InvestorSavedStartup,
-    InvestorTrackedProject
+    InvestorTrackedProject,
 )
 from .serializers import (
-    InvestorProfileSerializer,
-    CreateInvestorProfileSerializer,
-    InvestorPreferredIndustrySerializer,
     CreateInvestorPreferredIndustrySerializer,
-    InvestorSavedStartupSerializer,
+    CreateInvestorProfileSerializer,
     CreateInvestorSavedStartupSerializer,
+    CreateInvestorTrackedProjectSerializer,
+    InvestorPreferredIndustrySerializer,
+    InvestorProfileSerializer,
+    InvestorSavedStartupSerializer,
     InvestorTrackedProjectSerializer,
-    CreateInvestorTrackedProjectSerializer
 )
-
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
-
 
 logger = logging.getLogger(__name__)
 

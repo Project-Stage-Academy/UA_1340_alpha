@@ -1,14 +1,15 @@
 from django.urls import path
+
 from .views import (
-    InvestorProfileApiView,
-    InvestorProfileDetailApiView,
+    CreateDeleteSavedStartupApiView,
     InvestorPreferredIndustryApiView,
     InvestorPreferredIndustryDetailApiView,
+    InvestorProfileApiView,
+    InvestorProfileDetailApiView,
     InvestorTrackedProjectApiView,
     InvestorTrackedProjectDetailApiView,
-    CreateDeleteSavedStartupApiView, SavedStartupsApiView
+    SavedStartupsApiView,
 )
-
 
 urlpatterns = [
     # Investor Profiles

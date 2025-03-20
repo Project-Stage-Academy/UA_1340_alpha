@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import StartupProfileListCreateAPIView, StartupProfileDetailAPIView
+
+from .views import StartupProfileDetailAPIView, StartupProfileListCreateAPIView
 
 urlpatterns = [
     path('', StartupProfileListCreateAPIView.as_view(), name='startup-list-create'),

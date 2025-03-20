@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import ProjectListCreateAPIView, ProjectDetailAPIView
+
+from .views import ProjectDetailAPIView, ProjectListCreateAPIView
 
 urlpatterns = [
     path('', ProjectListCreateAPIView.as_view(), name='project-list-create'),

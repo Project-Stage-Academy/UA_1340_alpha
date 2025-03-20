@@ -1,15 +1,22 @@
-from rest_framework.test import APITestCase, APIRequestFactory, force_authenticate
 from rest_framework import status
+from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
+
+from investors.models import (
+    InvestorPreferredIndustry,
+    InvestorProfile,
+    InvestorTrackedProject,
+)
+from investors.views import (
+    InvestorPreferredIndustryApiView,
+    InvestorPreferredIndustryDetailApiView,
+    InvestorProfileApiView,
+    InvestorProfileDetailApiView,
+    InvestorTrackedProjectApiView,
+    InvestorTrackedProjectDetailApiView,
+)
+from projects.models import Project
 from startups.models import Industry, StartupProfile
 from users.models import User
-from projects.models import Project
-from investors.models import InvestorProfile, InvestorPreferredIndustry, InvestorTrackedProject
-from investors.views import (InvestorProfileApiView,
-                             InvestorProfileDetailApiView,
-                             InvestorPreferredIndustryApiView,
-                             InvestorPreferredIndustryDetailApiView,
-                             InvestorTrackedProjectApiView,
-                             InvestorTrackedProjectDetailApiView)
 
 
 class InvestorProfileApiTests(APITestCase):
