@@ -1,12 +1,17 @@
-
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes
-from django.template.loader import render_to_string
-from forum.tasks import send_email_task_no_ssl
-from celery.exceptions import CeleryError
 import logging
+from urllib.parse import urlencode
 
+from celery.exceptions import CeleryError
+from django.contrib.auth.tokens import default_token_generator
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from forum.tasks import send_email_task, send_email_task_no_ssl
+
+logger = logging.getLogger(__name__)
 
 def validate_password_policy(password):
     """
@@ -56,4 +61,27 @@ def send_reset_password_email(user, request):
 
     except Exception as e:
         logger.error(f"Failed to send password reset email: {e}")
+        return False
+
+
+def send_verification_email(user, request) -> bool:
+    try:
+        token = RefreshToken.for_user(user)
+
+        verification_url = request.build_absolute_uri(
+            f"{reverse('verify-email')}?{urlencode({'token': token})}"
+        )
+
+        subject = "Verify Your Email"
+        message = f"Click the link to verify your email: {verification_url}"
+        html_message = f"<p>Click <a href='{verification_url}'>here</a> to verify your email.</p>"
+
+        send_email_task.delay(subject, message, [user.email], html_message)
+        return True
+
+    except CeleryError as ce:
+        logger.error(f"Failed to send verification email: {ce}")
+        return False
+    except Exception as e:
+        logger.error(f"Failed to send verification email: {e}")
         return False

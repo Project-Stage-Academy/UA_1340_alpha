@@ -15,16 +15,15 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+<<<<<<< HEAD
 from django.urls import path, include, re_path
-from django.urls import path
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 from rest_framework import permissions
-
-from users.views import SendEmailAPIView, CustomTokenObtainPairView
-
-from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from drf_yasg.views import get_schema_view
+
+from users.views import CustomTokenObtainPairView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -45,10 +44,10 @@ urlpatterns = [
     path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    path('api/investors/', include('investors.urls')),
     path('api/users/', include('users.urls')),
     path('send-email/', SendEmailAPIView.as_view(), name="send_email"),
     path('api/communications/', include('communications.urls')),
-    path('api/investors/', include('investors.urls')),
     path('api/projects/', include('projects.urls')),
     path('api/startups/', include('startups.urls')),
 

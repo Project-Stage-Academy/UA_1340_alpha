@@ -5,7 +5,8 @@ from .views import (
     InvestorPreferredIndustryApiView,
     InvestorPreferredIndustryDetailApiView,
     InvestorTrackedProjectApiView,
-    InvestorTrackedProjectDetailApiView
+    InvestorTrackedProjectDetailApiView,
+    CreateDeleteSavedStartupApiView, SavedStartupsApiView
 )
 
 urlpatterns = [
@@ -20,4 +21,7 @@ urlpatterns = [
     # Investor Tracked Projects
     path('investor-tracked-projects/', InvestorTrackedProjectApiView.as_view(), name='investor-tracked-projects'),
     path('investor-tracked-projects/<int:pk>/', InvestorTrackedProjectDetailApiView.as_view(), name='investor-tracked-project-detail'),
+
+    path('saved-startups/', SavedStartupsApiView.as_view(), name='saved-startups'),
+    path('saved-startups/<int:startup_id>/', CreateDeleteSavedStartupApiView.as_view(), name='save-delete-startup'),
 ]
