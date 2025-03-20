@@ -243,7 +243,7 @@ class CreateDeleteSavedStartupApiView(APIView):
             )
 
 
-class SubscriptionCreateView(generics.CreateAPIView):
+class SubscriptionCreateView(APIView):
     """
     API endpoint to allow investors to subscribe to a project.
 
@@ -251,7 +251,6 @@ class SubscriptionCreateView(generics.CreateAPIView):
     - Ensures that total funding does not exceed 100%.
     - Returns the remaining available funding after subscription.
     """
-    serializer_class = SubscriptionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     @swagger_auto_schema(
@@ -270,7 +269,7 @@ class SubscriptionCreateView(generics.CreateAPIView):
             403: "User is not an investor"
         }
     )
-    def perform_create(self, serializer):
+    def post(self, request):
         """
         Validates and creates an investor subscription.
 
@@ -278,7 +277,9 @@ class SubscriptionCreateView(generics.CreateAPIView):
         - Checks if the total funding exceeds 100% before saving.
         - Returns a response indicating the remaining funding.
         """
-        user = self.request.user
+        user = request.user
+        serializer = SubscriptionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
         # Ensure the user has an investor profile
         try:
