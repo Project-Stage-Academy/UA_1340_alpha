@@ -5,8 +5,10 @@ from users.models import User
 
 class Communication(models.Model):
     id = models.AutoField(primary_key=True)
-    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
-    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
+    sender = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='sent_messages')
+    receiver = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='received_messages')
     content = models.TextField(blank=False, null=False)
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -16,5 +18,30 @@ class Communication(models.Model):
 
     def mark_as_read(self):
         """Mark the message as read and save changes."""
+        self.is_read = True
+        self.save(update_fields=['is_read'])
+
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = (
+        ('follow', 'Follow'),
+        ('message', 'Message'),
+        ('investment', 'Investment'),
+        ('other', 'Other'),
+    )
+
+    recipient = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='notifications')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    notification_type = models.CharField(
+        max_length=20, choices=NOTIFICATION_TYPES)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f'{self.sender} -> {self.recipient} - ({self.notification_type})'
+
+    def mark_notification_as_read(self):
         self.is_read = True
         self.save(update_fields=['is_read'])
