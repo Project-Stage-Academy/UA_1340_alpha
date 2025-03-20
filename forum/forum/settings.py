@@ -118,7 +118,7 @@ INSTALLED_APPS = [
     'communications',
     'dashboard',
     'storages',
-    'drf_yasg'
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
