@@ -36,13 +36,17 @@ schema_view = get_schema_view(
     permission_classes=(permissions.AllowAny,),
 )
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
-    path('api/investors/', include('investors.urls')),
     path('api/users/', include('users.urls')),
+    path('api/investors/', include('investors.urls')),
+    path('api/communications/', include('communications.urls')),
+    path('api/projects/', include('projects.urls')),
+    path('api/startups/', include('startups.urls')),
 
     # Swagger URLs
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
