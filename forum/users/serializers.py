@@ -103,6 +103,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         user = self.user
         selected_role = self.context["request"].data.get("role")
 
+        # All validations can later be moved to a utilities module.
         if selected_role not in ["startup", "investor"]:
             raise ValidationError({"role": "Invalid role. Choose 'startup' or 'investor'."})
 
@@ -111,6 +112,15 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         if selected_role == "investor" and not user.is_investor:
             raise ValidationError({"role": "You are not registered as an investor."})
+
+        if not user.is_email_confirmed:
+            raise ValidationError({"email": "Email not verified. Verify your email and try again."})
+
+        if user.status == 'banned':
+            raise ValidationError({"status": "Your account has been banned. You cannot log in."})
+
+        if not user.is_active:
+            raise ValidationError({"status": "Your account is inactive. Please contact support."})
 
         refresh = RefreshToken.for_user(user)
 
