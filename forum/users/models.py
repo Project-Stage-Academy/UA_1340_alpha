@@ -24,12 +24,8 @@ class User(AbstractBaseUser):
     password = models.CharField(max_length=255)
     first_name = models.CharField(max_length=255, blank=True, null=True)
     last_name = models.CharField(max_length=255, blank=True, null=True)
-
-    ROLE_CHOICES = [
-        ('startup', 'Startup'),
-        ('investor', 'Investor'),
-    ]
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES)
+    is_investor = models.BooleanField(default=False)
+    is_startup = models.BooleanField(default=False)
 
     STATUS_CHOICES = [
         ('active', 'Active'),

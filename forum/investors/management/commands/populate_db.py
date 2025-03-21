@@ -35,17 +35,25 @@ class Command(BaseCommand):
                 password=make_password("password123"),
                 first_name=fake.first_name(),
                 last_name=fake.last_name(),
-                role=random.choice(['startup', 'investor']),
+                is_investor=random.choice([True, False]),
+                is_startup=random.choice([True, False]),
                 is_email_confirmed=True
             )
             for _ in range(10)
         ]
+
+        # Ensure that at least one role is True
+        for user in users:
+            if not user.is_investor and not user.is_startup:
+                user.is_investor = True  # If both are False, set the user as an investor
+
+
         User.objects.bulk_create(users)
         self.stdout.write(self.style.SUCCESS("Users created."))
 
         # Create startup profiles
         startups = []
-        for user in [u for u in users if u.role == 'startup']:
+        for user in [u for u in users if u.is_startup]:
             startup = StartupProfile.objects.create(
                 user=user,
                 company_name=fake.company(),
@@ -59,7 +67,7 @@ class Command(BaseCommand):
 
         # Create investor profiles
         investors = []
-        for user in [u for u in users if u.role == 'investor']:
+        for user in [u for u in users if u.is_investor]:
             investor = InvestorProfile.objects.create(
                 user=user,
                 company_name=fake.company(),
