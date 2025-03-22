@@ -67,7 +67,7 @@ class InvestorProfileApiTests(APITestCase):
 
         # Create a POST request
         request = self.factory.post('/api/investors/investor-profiles/', payload)
-        print(request)
+        # print(request)
         force_authenticate(request, user=self.user2)
 
 
