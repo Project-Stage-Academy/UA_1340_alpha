@@ -267,27 +267,21 @@ class TestPasswordUtils(unittest.TestCase):
     def test_send_reset_password_email(self, mock_render_to_string, mock_send_email, mock_make_token, mock_urlsafe_base64_encode):
         mock_send_email.return_value = None
         
-        # Mock user with appropriate attributes
         user = MagicMock()
         user.first_name = "Test"
         user.email = "test@example.com"
         user.pk = 1
         
-        # Mock request to return the correct URL
         request = MagicMock()
         request.build_absolute_uri.return_value = "http://example.com/reset-password"
 
-        # Set up return values for token and encoded UID
         mock_make_token.return_value = "mock-token"
         mock_urlsafe_base64_encode.return_value = "mock-uid"
 
-        # Call the function under test
         result = send_reset_password_email(user, request)
 
-        # Assert the function call and result
         self.assertTrue(result)
 
-        # Check that the email sending function was called with correct arguments
         mock_send_email.assert_called_once_with(
             'Password Reset Request',
             "Hi Test,\n\nYou requested a password reset. Click the link below to set a new password:\nhttp://example.com/reset-password\n\nIf you didn't request this, you can ignore this email.\n\nThanks,\nThe Forum-Beta Team",
