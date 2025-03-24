@@ -120,6 +120,11 @@ INSTALLED_APPS = [
     'dashboard',
     'storages',
     'drf_yasg',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.github',
 ]
 
 MIDDLEWARE = [
@@ -130,6 +135,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = 'forum.urls'
@@ -196,6 +202,24 @@ REST_FRAMEWORK = {
 
 # Specifies the custom User model for authentication
 AUTH_USER_MODEL = "users.User"
+
+# OAuth
+SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'APP': {
+            'client_id': os.environ.get('OAUTH_GOOGLE_CLIENT_ID'),
+            'secret': os.environ.get('OAUTH_GOOGLE_CLIENT_SECRET'),
+            'key': ''
+        }
+    }
+}
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=3),
