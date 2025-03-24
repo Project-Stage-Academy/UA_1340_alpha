@@ -1,7 +1,8 @@
-import unittest
-from unittest.mock import patch, MagicMock
-from forum.tasks import send_email_task_no_ssl, send_email_task  
 import logging
+import unittest
+from unittest.mock import MagicMock, patch
+
+from forum.tasks import send_email_task, send_email_task_no_ssl
 
 logger = logging.getLogger("forum.tasks")
 logger.setLevel(logging.ERROR)

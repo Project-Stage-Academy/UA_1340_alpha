@@ -1,18 +1,16 @@
 import logging
-from unittest.mock import ANY, patch
+import unittest
+from unittest.mock import ANY, MagicMock, patch
 
 import jwt
 from django.db import DatabaseError
+from django.test import RequestFactory
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import AccessToken
 
 from .models import User
-
-import unittest
-from unittest.mock import patch, MagicMock
-from django.test import RequestFactory
 from users.utils import send_reset_password_email, send_verification_email, validate_password_policy
 
 logger = logging.getLogger(__name__)
