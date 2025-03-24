@@ -31,14 +31,14 @@ class InvestorProfileApiTests(APITestCase):
             last_name="testuser1",
             password="password1",
             email="test1@example.com",
-            role="investor"
+            is_investor="True"
         )
         self.user2 = User.objects.create_user(
             first_name="testuser2",
             last_name="testuser2",
             password="password2",
             email="test2@example.com",
-            role="investor"
+            is_investor="True"
         )
 
         # Create an investor profile
@@ -157,7 +157,7 @@ class InvestorPreferredIndustryApiTests(APITestCase):
             last_name="testuser",
             password="testpassword",
             email="test@example.com",
-            role="investor"
+            is_investor="True"
         )
 
         self.investor_profile = InvestorProfile.objects.create(
@@ -258,7 +258,7 @@ class InvestorTrackedProjectApiTests(APITestCase):
             last_name="testuser",
             password="testpassword",
             email="test@example.com",
-            role="investor"
+            is_investor="True"
         )
 
         self.investor_profile = InvestorProfile.objects.create(

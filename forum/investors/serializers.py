@@ -84,7 +84,6 @@ class InvestorSavedStartupSerializer(serializers.ModelSerializer):
             'id',
             'investor',
             'startup',
-            'share',
             'created_at',
         ]
         read_only_fields = ['id', 'created_at']
@@ -97,7 +96,6 @@ class CreateInvestorSavedStartupSerializer(serializers.ModelSerializer):
             'id',
             'investor',
             'startup',
-            'share'
         ]
         read_only_fields = ('id',)
 

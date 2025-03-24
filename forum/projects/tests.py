@@ -18,7 +18,7 @@ class ProjectApiTests(APITestCase):
             last_name="testuser",
             password="testpassword",
             email="test@example.com",
-            role="startup"
+            is_startup="True"
         )
 
         self.startup = StartupProfile.objects.create(
