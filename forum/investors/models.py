@@ -38,6 +38,13 @@ class InvestorSavedStartup(models.Model):
     investor = models.ForeignKey(InvestorProfile, on_delete=models.CASCADE, related_name='saved_startups')
     startup = models.ForeignKey(StartupProfile, on_delete=models.CASCADE, related_name='investor_saves')
     created_at = models.DateTimeField(auto_now_add=True)
+    share = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        default=Decimal('0.00'),
+        help_text="Share of investment in percentage (0 - 100%)"
+    )
 
     class Meta:
         unique_together = ('investor', 'startup')
