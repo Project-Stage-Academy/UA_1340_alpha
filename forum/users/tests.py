@@ -11,7 +11,11 @@ from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import AccessToken
 
 from .models import User
-from users.utils import send_reset_password_email, send_verification_email, validate_password_policy
+from users.utils import (
+    send_reset_password_email,
+    send_verification_email,
+    validate_password_policy,
+)
 
 logger = logging.getLogger(__name__)
 
