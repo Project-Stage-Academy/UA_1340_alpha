@@ -43,7 +43,11 @@ class CreateInvestorProfileSerializer(serializers.ModelSerializer):
             'investment_range',
             'investor_logo',
         ]
-        read_only_fields = ('id',)
+        read_only_fields = ('id', 'user',)
+
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
 
 
 class InvestorPreferredIndustrySerializer(serializers.ModelSerializer):
