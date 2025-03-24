@@ -1,10 +1,12 @@
+from datetime import timedelta
+
 from django.db import models
 from django.utils.timezone import now
-from datetime import timedelta
-from users.models import User
+
+from investors.models import InvestorProfile
 from projects.models import Project
 from startups.models import StartupProfile
-from investors.models import InvestorProfile
+from users.models import User
 
 
 def get_expiration_date():
