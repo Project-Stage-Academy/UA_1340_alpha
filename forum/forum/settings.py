@@ -224,6 +224,13 @@ SOCIALACCOUNT_PROVIDERS = {
             'secret': os.environ.get('OAUTH_GOOGLE_CLIENT_SECRET'),
             'key': ''
         }
+    },
+    'github': { 
+        'APP': { 
+            'client_id': os.environ.get('OAUTH_GITHUB_CLIENT_ID'), 
+            'secret': os.environ.get('OAUTH_GITHUB_CLIENT_SECRET'), 
+            'key': ''
+        }
     }
 }
 
