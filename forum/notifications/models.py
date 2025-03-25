@@ -71,4 +71,5 @@ class Notification(models.Model):
 
     def mark_notification_as_read(self):
         self.is_read = True
-        self.save(update_fields=['is_read'])
+        self.read_at = now()
+        self.save(update_fields=['is_read', 'read_at'])
