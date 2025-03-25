@@ -7,7 +7,8 @@ from rest_framework.test import APIRequestFactory, APITestCase, force_authentica
 from investors.models import (
     InvestorPreferredIndustry,
     InvestorProfile,
-    InvestorTrackedProject, InvestorSavedStartup,
+    InvestorSavedStartup,
+    InvestorTrackedProject,
 )
 from investors.views import (
     InvestorPreferredIndustryApiView,
