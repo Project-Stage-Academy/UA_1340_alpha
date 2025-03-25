@@ -1,10 +1,13 @@
+from unittest.mock import patch
+
+from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
 
 from investors.models import (
     InvestorPreferredIndustry,
     InvestorProfile,
-    InvestorTrackedProject,
+    InvestorTrackedProject, InvestorSavedStartup,
 )
 from investors.views import (
     InvestorPreferredIndustryApiView,
@@ -17,6 +20,92 @@ from investors.views import (
 from projects.models import Project
 from startups.models import Industry, StartupProfile
 from users.models import User
+
+
+class BaseSavedStartupsAPITestCase(APITestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user1 = User.objects.create_user(
+            email='investor1@example.com',
+            password='SecurePassword123',
+            first_name="John1",
+            last_name="Doe1",
+            is_investor=True,
+            is_startup=True,
+        )
+
+        cls.user2 = User.objects.create_user(
+            email='investor2@example.com',
+            password='SecurePassword123',
+            first_name="John2",
+            last_name="Doe2",
+            is_investor=True,
+            is_startup=True,
+        )
+
+        cls.user3 = User.objects.create_user(
+            email='startup1@example.com',
+            password='SecurePassword123',
+            first_name="John3",
+            last_name="Doe3",
+            is_startup=True,
+        )
+
+        cls.user4 = User.objects.create_user(
+            email='startup2@example.com',
+            password='SecurePassword123',
+            first_name="John4",
+            last_name="Doe4",
+            is_startup=True,
+        )
+
+        cls.investor_profile1 = InvestorProfile.objects.create(
+            user=cls.user1,
+            company_name="Test Company",
+            investment_focus="Technology",
+            contact_email="investor1@example.com",
+            investment_range="100000-500000"
+        )
+
+        cls.investor_profile2 = InvestorProfile.objects.create(
+            user=cls.user2,
+            company_name="Test Company 2",
+            investment_focus="Finance",
+            contact_email="investor2@example.com",
+            investment_range="500000-1000000"
+        )
+
+        cls.startup1 = StartupProfile.objects.create(
+            user=cls.user2,
+            company_name="HealthTech Startup",
+            description="A healthcare technology startup.",
+            contact_email="healthtech@example.com"
+        )
+
+        cls.startup2 = StartupProfile.objects.create(
+            user=cls.user3,
+            company_name="EduTech Startup",
+            description="An educational technology startup.",
+            contact_email="edutech@example.com"
+        )
+
+        cls.startup3 = StartupProfile.objects.create(
+            user=cls.user4,
+            company_name="Untracked Startup",
+            description="A startup not saved by the investor.",
+            contact_email="untracked@example.com"
+        )
+
+        InvestorSavedStartup.objects.create(
+            investor=cls.investor_profile1,
+            startup=cls.startup1,
+        )
+
+        InvestorSavedStartup.objects.create(
+            investor=cls.investor_profile1,
+            startup=cls.startup2,
+        )
 
 
 class InvestorProfileApiTests(APITestCase):
@@ -146,6 +235,7 @@ class InvestorProfileApiTests(APITestCase):
         # Verify that the profile has been deleted
         self.assertFalse(InvestorProfile.objects.filter(pk=self.investor_profile.id).exists())
 
+
 class InvestorPreferredIndustryApiTests(APITestCase):
 
     def setUp(self):
@@ -246,6 +336,7 @@ class InvestorPreferredIndustryApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
         self.assertFalse(InvestorPreferredIndustry.objects.filter(pk=self.investor_preferred_industry.id).exists())
+
 
 class InvestorTrackedProjectApiTests(APITestCase):
 
@@ -368,3 +459,246 @@ class InvestorTrackedProjectApiTests(APITestCase):
 
         self.assertFalse(InvestorTrackedProject.objects.filter(pk=self.tracked_project.id).exists())
 
+
+class SavedStartupsApiViewTests(BaseSavedStartupsAPITestCase):
+
+    def setUp(self):
+        self.url = reverse('saved-startups')
+
+    def test_get_saved_startups_with_no_saved_startups_returns_200(self):
+        self.client.force_authenticate(user=self.user2)
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, [])
+
+    def test_get_saved_startups_with_no_investor_profile_returns_404(self):
+        self.client.force_authenticate(user=self.user3)
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data["error"], "Investor profile not found")
+
+    def test_get_saved_startups_unexpected_exception_returns_500(self):
+        self.client.force_authenticate(user=self.user1)
+        with patch(
+            "investors.models.InvestorProfile.objects.get",
+            side_effect=Exception("Unexpected error"),
+        ):
+            response = self.client.get(self.url)
+            self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+            self.assertEqual(response.data["error"], "Unexpected error")
+
+    def test_get_saved_startups_with_valid_search_term_returns_200(self):
+        self.client.force_authenticate(user=self.user1)
+
+        response = self.client.get(
+            self.url,
+            {"search": "HealthTech", "search_field": "company_name"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["company_name"], "HealthTech Startup")
+
+    def test_get_saved_startups_sorted_descending_returns_200(self):
+        self.client.force_authenticate(user=self.user1)
+
+        response = self.client.get(
+            self.url,
+            {"sort": "-company_name"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]["company_name"], "HealthTech Startup")
+        self.assertEqual(response.data[1]["company_name"], "EduTech Startup")
+
+    def test_get_saved_startups_with_default_search_field_returns_200(self):
+        self.client.force_authenticate(user=self.user1)
+
+        response = self.client.get(
+            self.url,
+            {"search": "HealthTech"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["company_name"], "HealthTech Startup")
+
+    def test_get_saved_startups_filtered_by_description_returns_200(self):
+        self.client.force_authenticate(user=self.user1)
+
+        response = self.client.get(
+            self.url,
+            {"search": "healthcare technology", "search_field": "description"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["description"], "A healthcare technology startup.")
+
+    def test_get_saved_startups_without_search_or_sort_returns_200(self):
+        self.client.force_authenticate(user=self.user1)
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]["company_name"], "HealthTech Startup")
+        self.assertEqual(response.data[1]["company_name"], "EduTech Startup")
+
+    def test_get_saved_startups_with_invalid_search_field_returns_200(self):
+        self.client.force_authenticate(user=self.user1)
+
+        response = self.client.get(
+            self.url,
+            {"search": "HealthTech", "search_field": "invalid_field"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)  # Should return all startups since the search field is invalid
+        self.assertEqual(response.data[0]["company_name"], "HealthTech Startup")
+        self.assertEqual(response.data[1]["company_name"], "EduTech Startup")
+
+    def test_get_saved_startups_with_invalid_sort_field_returns_200(self):
+        self.client.force_authenticate(user=self.user1)
+
+        response = self.client.get(
+            self.url,
+            {"sort": "invalid_field"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]["company_name"], "HealthTech Startup")
+        self.assertEqual(response.data[1]["company_name"], "EduTech Startup")
+
+
+class CreateDeleteSavedStartupApiViewTests(BaseSavedStartupsAPITestCase):
+
+    def setUp(self):
+        self.get_url = reverse('saved-startups')
+
+    def test_save_already_saved_startup_returns_400(self):
+        self.client.force_authenticate(user=self.user2)
+
+        saved_startup = InvestorSavedStartup.objects.create(
+            investor=self.investor_profile2,
+            startup=self.startup1,
+        )
+
+        response = self.client.get(self.get_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["company_name"], "HealthTech Startup")
+
+        url = reverse('save-delete-startup', kwargs={'startup_id': self.startup1.id})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['error'], "Startup is already saved by the investor")
+
+        saved_startup.delete()
+        response = self.client.get(self.get_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, [])
+
+    def test_save_non_existent_startup_profile_returns_404(self):
+        self.client.force_authenticate(user=self.user1)
+        non_existent_startup_id = 9999
+
+        url = reverse('save-delete-startup', kwargs={'startup_id': non_existent_startup_id})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data['error'], "Startup profile not found")
+
+    def test_delete_non_existent_startup_profile_returns_404(self):
+        self.client.force_authenticate(user=self.user1)
+        non_existent_startup_id = 9999
+
+        url = reverse('save-delete-startup', kwargs={'startup_id': non_existent_startup_id})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data['error'], "Startup profile not found")
+
+    def test_delete_unsaved_startup_returns_404(self):
+        self.client.force_authenticate(user=self.user1)
+
+        url = reverse('save-delete-startup', kwargs={'startup_id': self.startup3.id})
+        response = self.client.delete(url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data['error'], "Saved startup not found")
+
+    def test_save_startup_unexpected_exception_returns_500(self):
+        self.client.force_authenticate(user=self.user1)
+
+        with patch(
+                "investors.models.InvestorProfile.objects.get",
+                side_effect=Exception("Unexpected error")
+        ):
+            url = reverse('save-delete-startup', kwargs={'startup_id': self.startup1.id})
+            response = self.client.post(url)
+            self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+            self.assertEqual(response.data['error'], "Unexpected error")
+
+    def test_delete_startup_unexpected_exception_returns_500(self):
+        self.client.force_authenticate(user=self.user1)
+
+        with patch(
+                "investors.models.InvestorProfile.objects.get",
+                side_effect=Exception("Unexpected error")
+        ):
+            url = reverse('save-delete-startup', kwargs={'startup_id': self.startup1.id})
+            response = self.client.delete(url)
+            self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+            self.assertEqual(response.data['error'], "Unexpected error")
+
+    def test_delete_startup_with_non_existent_investor_profile_returns_404(self):
+        self.client.force_authenticate(user=self.user3)
+
+        url = reverse('save-delete-startup', kwargs={'startup_id': self.startup1.id})
+        response = self.client.delete(url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data['error'], "Investor profile not found")
+
+    def test_save_startup_with_non_existent_investor_profile_returns_404(self):
+        self.client.force_authenticate(user=self.user3)
+        url = reverse('save-delete-startup', kwargs={'startup_id': self.startup1.id})
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data['error'], "Investor profile not found")
+
+    def test_delete_saved_startup_returns_204(self):
+        self.client.force_authenticate(user=self.user1)
+
+        saved_startup = InvestorSavedStartup.objects.create(
+            investor=self.investor_profile1,
+            startup=self.startup3
+        )
+        self.assertTrue(InvestorSavedStartup.objects.filter(pk=saved_startup.id).exists())
+
+        url = reverse('save-delete-startup', kwargs={'startup_id': self.startup3.id})
+        response = self.client.delete(url)
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(InvestorSavedStartup.objects.filter(pk=saved_startup.id).exists())
+
+    def test_save_new_startup_returns_201(self):
+        self.client.force_authenticate(user=self.user1)
+
+        url = reverse('save-delete-startup', kwargs={'startup_id': self.startup3.id})
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['startup'], self.startup3.id)
+        self.assertTrue(
+            InvestorSavedStartup.objects.filter(
+                investor=self.investor_profile1,
+                startup=self.startup3
+            ).exists()
+        )
+
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(
+            InvestorSavedStartup.objects.filter(
+                investor=self.investor_profile1,
+                startup=self.startup3
+            ).exists()
+        )
