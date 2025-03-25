@@ -6,6 +6,8 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import DatabaseError, IntegrityError
 from django.utils.http import urlsafe_base64_decode
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -31,6 +33,27 @@ class ResetPasswordRequestView(APIView):
     """
     permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        operation_summary="Request Password Reset",
+        operation_description="Send a password reset email if the user exists.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "email": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    format=openapi.FORMAT_EMAIL,
+                    description="User's email"
+                ),
+            },
+            required=["email"],
+        ),
+        responses={
+            200: openapi.Response(description="If the email exists, a reset link is sent."),
+            400: openapi.Response(description="Bad request, missing email."),
+            404: openapi.Response(description="Email not found."),
+            500: openapi.Response(description="Internal server error."),
+        }
+    )
     def post(self, request):
         email = request.data.get("email")
         if not email:
@@ -62,6 +85,30 @@ class ResetPasswordConfirmView(APIView):
     """
     permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        operation_summary="Confirm Password Reset",
+        operation_description="Verify reset token and set a new password.",
+        manual_parameters=[
+            openapi.Parameter(
+                "uidb64", openapi.IN_PATH, description="Encoded user ID", type=openapi.TYPE_STRING
+            ),
+            openapi.Parameter(
+                "token", openapi.IN_PATH, description="Password reset token", type=openapi.TYPE_STRING
+            ),
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "password": openapi.Schema(type=openapi.TYPE_STRING, description="New password"),
+            },
+            required=["password"],
+        ),
+        responses={
+            200: openapi.Response(description="Password reset successfully."),
+            400: openapi.Response(description="Invalid token or bad request."),
+            500: openapi.Response(description="Internal server error."),
+        }
+    )
     def post(self, request, uidb64, token):
         try:
             uid = urlsafe_base64_decode(uidb64).decode()
@@ -92,12 +139,34 @@ class ResetPasswordCompleteView(APIView):
     """
     permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        operation_summary="Password Reset Complete",
+        operation_description="Confirm that the password reset process has been completed.",
+        responses={
+            200: openapi.Response(description="Password reset process is complete."),
+            500: openapi.Response(description="Internal server error."),
+        }
+    )
     def get(self, request):
         return Response({"message": "Password reset process is complete."}, status=status.HTTP_200_OK)
 
 
 class SignupView(APIView):
+    """
+    API View to handle user signup.
+    """
+    permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        operation_summary="User Signup",
+        operation_description="Register a new user and send a verification email.",
+        request_body=UserSerializer,
+        responses={
+            201: openapi.Response(description="User created successfully."),
+            400: openapi.Response(description="Validation error."),
+            500: openapi.Response(description="Internal server error."),
+        }
+    )
     def post(self, request):
         logger.info("SignupView POST request received with data: %s", request.data)
         try:
@@ -173,8 +242,30 @@ class SignupView(APIView):
 
 
 class VerifyEmailView(APIView):
+    """
+    API View to verify user email.
+    """
     permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        operation_summary="Verify Email",
+        operation_description="Verify a user's email using a token.",
+        manual_parameters=[
+            openapi.Parameter(
+                "token",
+                openapi.IN_QUERY,
+                description="JWT verification token",
+                type=openapi.TYPE_STRING,
+                required=True
+            ),
+        ],
+        responses={
+            200: openapi.Response(description="Email verified successfully."),
+            400: openapi.Response(description="Invalid or expired token."),
+            404: openapi.Response(description="User not found."),
+            500: openapi.Response(description="Database error."),
+        }
+    )
     def get(self, request):
         token = request.GET.get("token")
         if not token:
@@ -228,8 +319,32 @@ class VerifyEmailView(APIView):
 
 
 class ResendVerificationEmailView(APIView):
+    """
+    API View to resend email verification link to user.
+    """
     permission_classes = [AllowAny]
 
+    @swagger_auto_schema(
+        operation_summary="Resend Verification Email",
+        operation_description="Resend email verification link to user.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "email": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    format=openapi.FORMAT_EMAIL,
+                    description="User's email"
+                ),
+            },
+            required=["email"],
+        ),
+        responses={
+            200: openapi.Response(description="Verification email sent."),
+            400: openapi.Response(description="Email is required."),
+            404: openapi.Response(description="User not found."),
+            500: openapi.Response(description="Failed to send email."),
+        }
+    )
     def post(self, request):
         email = request.data.get("email")
         if not email:
@@ -283,7 +398,59 @@ class ResendVerificationEmailView(APIView):
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
+    """
+    Allow users to obtain a pair of access and refresh tokens using their email and password.
+    """
     serializer_class = CustomTokenObtainPairSerializer
+
+    @swagger_auto_schema(
+        operation_summary="Obtain JWT Token",
+        operation_description="Authenticate user and return JWT access & refresh tokens.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "email": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    format=openapi.FORMAT_EMAIL,
+                    description="User's email address."
+                ),
+                "password": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    format=openapi.FORMAT_PASSWORD,
+                    description="User's password."
+                ),
+                "role": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    enum=["investor", "startup"],
+                    description="User's selected role for authentication ('startup' or 'investor')."
+                ),
+            },
+            required=["email", "password", "role"],
+        ),
+        responses={
+            200: openapi.Response(
+                description="JWT access and refresh tokens returned.",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "access": openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            description="JWT access token."
+                        ),
+                        "refresh": openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            description="JWT refresh token."
+                        ),
+                    },
+                ),
+            ),
+            400: openapi.Response(description="Invalid credentials or validation error."),
+            401: openapi.Response(description="Unauthorized, email not verified."),
+            403: openapi.Response(description="User is banned or inactive."),
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
 
 
 class LogoutAPIView(APIView):
@@ -294,6 +461,24 @@ class LogoutAPIView(APIView):
 
     permission_classes = (IsAuthenticated,)
 
+    @swagger_auto_schema(
+        operation_summary="User Logout",
+        operation_description="Log out the user by blacklisting the refresh token.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "refresh": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="JWT refresh token"
+                ),
+            },
+            required=["refresh"],
+        ),
+        responses={
+            205: openapi.Response(description="Successfully logged out."),
+            400: openapi.Response(description="Invalid or missing refresh token."),
+        }
+    )
     def post(self, request):
         """
         Handle POST request to blacklist the provided refresh token.
