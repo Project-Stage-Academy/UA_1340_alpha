@@ -1,13 +1,20 @@
 import logging
-from unittest.mock import ANY, patch
+import unittest
+from unittest.mock import ANY, MagicMock, patch
 
 import jwt
 from django.db import DatabaseError
+from django.test import RequestFactory
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import AccessToken
 
+from users.utils import (
+    send_reset_password_email,
+    send_verification_email,
+    validate_password_policy,
+)
 from .models import User
 
 logger = logging.getLogger(__name__)
@@ -244,3 +251,83 @@ class ResendVerificationEmailViewTests(APITestCase):
             response = self.client.post(self.url, {'email': self.email}, format='json')
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertEqual(response.data['message'], 'Email is already verified.')
+
+class TestPasswordUtils(unittest.TestCase):
+
+    @patch('users.utils.urlsafe_base64_encode')
+    @patch('users.utils.default_token_generator.make_token')
+    @patch('users.utils.send_email_task_no_ssl.delay')
+    @patch('users.utils.render_to_string', return_value='<p>Click <a href="http://example.com/reset-password">here</a> to reset your password.</p>')
+    
+    def test_send_reset_password_email(self, mock_render_to_string, mock_send_email, mock_make_token, mock_urlsafe_base64_encode):
+        mock_send_email.return_value = None
+        
+        user = MagicMock()
+        user.first_name = "Test"
+        user.email = "test@example.com"
+        user.pk = 1
+        
+        request = MagicMock()
+        request.build_absolute_uri.return_value = "http://example.com/reset-password"
+
+        mock_make_token.return_value = "mock-token"
+        mock_urlsafe_base64_encode.return_value = "mock-uid"
+
+        result = send_reset_password_email(user, request)
+
+        self.assertTrue(result)
+
+        mock_send_email.assert_called_once_with(
+            'Password Reset Request',
+            "Hi Test,\n\nYou requested a password reset. Click the link below to set a new password:\nhttp://example.com/reset-password\n\nIf you didn't request this, you can ignore this email.\n\nThanks,\nThe Forum-Beta Team",
+            ['test@example.com'],
+            '<p>Click <a href="http://example.com/reset-password">here</a> to reset your password.</p>'
+            )
+
+    @patch('users.utils.send_email_task.delay')
+    @patch('users.utils.RefreshToken.for_user')
+    def test_send_verification_email(self, mock_refresh_token, mock_send_email):
+
+        user = MagicMock()
+        user.email = "test@example.com"
+        request = MagicMock()
+        request.build_absolute_uri.return_value = "http://example.com/verify-email"
+
+        mock_refresh_token.return_value = MagicMock(access_token="mock-access-token")
+
+        result = send_verification_email(user, request)
+
+        self.assertTrue(result)
+
+        mock_send_email.assert_called_once_with(
+            "Verify Your Email",
+            "Click the link to verify your email: http://example.com/verify-email",
+            ["test@example.com"],
+            "<p>Click <a href='http://example.com/verify-email'>here</a> to verify your email.</p>"
+        )
+
+
+class TestPasswordPolicy(unittest.TestCase):
+
+    def test_validate_password_policy(self):
+        result = validate_password_policy("Valid1Password!")
+        self.assertEqual(result, "")
+
+        result = validate_password_policy("short")
+        self.assertEqual(result, "Password must be at least 8 characters long.")
+
+        result = validate_password_policy("nocapital1!")
+        self.assertEqual(result, "Password must contain at least one uppercase letter.")
+
+        result = validate_password_policy("NOLOWERCASE1!")
+        self.assertEqual(result, "Password must contain at least one lowercase letter.")
+
+        result = validate_password_policy("NoNumbers!")
+        self.assertEqual(result, "Password must contain at least one number.")
+
+        result = validate_password_policy("NoSpecialChars1")
+        self.assertEqual(result, "Password must contain at least one special character.")
+
+
+if __name__ == '__main__':
+  unittest.main()
