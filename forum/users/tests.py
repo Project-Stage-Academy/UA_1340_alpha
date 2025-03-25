@@ -23,7 +23,7 @@ class SignupViewTests(APITestCase):
             'password': 'SecurePassword123',
             'first_name': 'Test',
             'last_name': 'User',
-            'role': 'startup'
+            'is_investor': True,
         }
 
     def test_signup_with_valid_data_returns_201(self):
@@ -53,12 +53,11 @@ class SignupViewTests(APITestCase):
     def test_signup_with_missing_required_fields_returns_400(self):
         missing_fields_data = {
             'email': 'test@example.com',
-            'password': 'SecurePassword123',
-            # Missing 'first_name', 'last_name', 'role'
+            # Missing 'first_name', 'last_name', 'password'
         }
         response = self.client.post(self.url, missing_fields_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('role', response.data)
+        self.assertIn('password', response.data)
 
     def test_signup_with_invalid_email_format_returns_400(self):
         invalid_email_data = self.valid_user_data.copy()
@@ -88,7 +87,6 @@ class SignupViewTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('email', response.data)
         self.assertIn('password', response.data)
-        self.assertIn('role', response.data)
 
     def test_signup_with_long_password_returns_400(self):
         long_password_data = self.valid_user_data.copy()
@@ -127,10 +125,9 @@ class SignupViewTests(APITestCase):
 
     def test_signup_with_invalid_role_returns_400(self):
         invalid_role_data = self.valid_user_data.copy()
-        invalid_role_data['role'] = 'invalid_role'  # Invalid role
+        invalid_role_data['is_investor'] = False  # Invalid role
         response = self.client.post(self.url, invalid_role_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('role', response.data)
 
 
 class VerifyEmailViewTests(APITestCase):

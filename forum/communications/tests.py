@@ -13,14 +13,14 @@ class CommunicationsViewTests(APITestCase):
         Set up test data with users and communications.
         """
         self.user1 = User.objects.create_user(
-            email="user1@example.com", password="password1", first_name="User", last_name="One", role="startup"
+            email="user1@example.com", password="password1", first_name="User", last_name="One", is_startup="True"
         )
         self.user2 = User.objects.create_user(
-            email="user2@example.com", password="password2", first_name="User", last_name="Two", role="investor"
+            email="user2@example.com", password="password2", first_name="User", last_name="Two", is_investor="True"
         )
 
         self.user3 = User.objects.create_user(
-            email="user3@example.com", password="password3", first_name="User", last_name="Three", role="investor"
+            email="user3@example.com", password="password3", first_name="User", last_name="Three", is_investor="True"
         )
 
         self.client.force_authenticate(user=self.user1)

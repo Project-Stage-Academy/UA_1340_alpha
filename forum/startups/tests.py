@@ -17,7 +17,7 @@ class StartupProfileApiTests(APITestCase):
             last_name="testuser",
             password="testpassword",
             email="test@example.com",
-            role="startup"
+            is_startup="True"
         )
 
         # Create a test industry
@@ -62,7 +62,7 @@ class StartupProfileApiTests(APITestCase):
             last_name="newuser",
             password="newpassword",
             email="newuser@example.com",
-            role="startup"
+            is_startup="True"
         )
 
         # Create a new industry
