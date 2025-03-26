@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 
 from startups.models import StartupProfile
 from startups.serializers import StartupProfileSerializer
+from users.permissions import IsInvestor
 from .models import (
     InvestorPreferredIndustry,
     InvestorProfile,
@@ -750,7 +751,10 @@ class SubscriptionCreateView(APIView):
     - Ensures that total funding does not exceed 100%.
     - Returns the remaining available funding after subscription.
     """
-    permission_classes = [permissions.IsAuthenticated]
+
+    permission_classes = [permissions.IsAuthenticated, IsInvestor]
+
+
 
     @swagger_auto_schema(
         request_body=SubscriptionSerializer,
@@ -776,6 +780,8 @@ class SubscriptionCreateView(APIView):
         - Checks if the total funding exceeds 100% before saving.
         - Returns a response indicating the remaining funding.
         """
+
+
         user = request.user
         serializer = SubscriptionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
