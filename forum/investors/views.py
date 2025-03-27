@@ -1,8 +1,10 @@
 import logging
 
+from django.db.models import Sum
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import status
+from rest_framework import permissions, status
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -25,9 +27,11 @@ from .serializers import (
     InvestorProfileSerializer,
     InvestorSavedStartupSerializer,
     InvestorTrackedProjectSerializer,
+    SubscriptionSerializer,
 )
 
 logger = logging.getLogger(__name__)
+
 
 class InvestorProfileApiView(APIView):
     permission_classes = (IsAuthenticated,)
@@ -87,6 +91,7 @@ class InvestorProfileApiView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class InvestorProfileDetailApiView(APIView):
     permission_classes = (IsAuthenticated,)
     """
@@ -116,7 +121,8 @@ class InvestorProfileDetailApiView(APIView):
         operation_description="Retrieve the details of a specific investor profile by its ID.",
         tags=["Investors"],
         manual_parameters=[
-            openapi.Parameter('pk', openapi.IN_PATH, description="ID of the investor profile", type=openapi.TYPE_INTEGER)
+            openapi.Parameter('pk', openapi.IN_PATH, description="ID of the investor profile",
+                              type=openapi.TYPE_INTEGER)
         ],
         responses={
             200: InvestorProfileSerializer,
@@ -145,7 +151,8 @@ class InvestorProfileDetailApiView(APIView):
         operation_description="Update the details of an investor profile by its ID.",
         tags=["Investors"],
         manual_parameters=[
-            openapi.Parameter('pk', openapi.IN_PATH, description="ID of the investor profile", type=openapi.TYPE_INTEGER)
+            openapi.Parameter('pk', openapi.IN_PATH, description="ID of the investor profile",
+                              type=openapi.TYPE_INTEGER)
         ],
         request_body=CreateInvestorProfileSerializer,
         responses={
@@ -183,7 +190,8 @@ class InvestorProfileDetailApiView(APIView):
         operation_description="Delete a specific investor profile by its ID.",
         tags=["Investors"],
         manual_parameters=[
-            openapi.Parameter('pk', openapi.IN_PATH, description="ID of the investor profile", type=openapi.TYPE_INTEGER)
+            openapi.Parameter('pk', openapi.IN_PATH, description="ID of the investor profile",
+                              type=openapi.TYPE_INTEGER)
         ],
         responses={
             204: "Profile deleted successfully.",
@@ -262,6 +270,7 @@ class InvestorPreferredIndustryApiView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class InvestorPreferredIndustryDetailApiView(APIView):
     permission_classes = (IsAuthenticated,)
@@ -356,6 +365,7 @@ class InvestorPreferredIndustryDetailApiView(APIView):
         industry.delete()
         return Response({"message": "Industry deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
+
 class InvestorTrackedProjectApiView(APIView):
     permission_classes = (IsAuthenticated,)
     """
@@ -410,6 +420,7 @@ class InvestorTrackedProjectApiView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class InvestorTrackedProjectDetailApiView(APIView):
     permission_classes = (IsAuthenticated,)
@@ -583,6 +594,7 @@ class SavedStartupsApiView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+
 class CreateDeleteSavedStartupApiView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -728,3 +740,74 @@ class CreateDeleteSavedStartupApiView(APIView):
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class SubscriptionCreateView(APIView):
+    """
+    API endpoint to allow investors to subscribe to a project.
+
+    - Investors can subscribe by specifying a project and an investment share.
+    - Ensures that total funding does not exceed 100%.
+    - Returns the remaining available funding after subscription.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    @swagger_auto_schema(
+        request_body=SubscriptionSerializer,
+        responses={
+            201: openapi.Response(
+                description="Subscription successful",
+                examples={
+                    "application/json": {
+                        "message": "Subscription successful.",
+                        "remaining_funding": 50
+                    }
+                }
+            ),
+            400: "Invalid input or exceeding funding limit",
+            403: "User is not an investor"
+        }
+    )
+    def post(self, request):
+        """
+        Validates and creates an investor subscription.
+
+        - Ensures the user has an investor profile.
+        - Checks if the total funding exceeds 100% before saving.
+        - Returns a response indicating the remaining funding.
+        """
+        user = request.user
+        serializer = SubscriptionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Ensure the user has an investor profile
+        try:
+            investor = InvestorProfile.objects.get(user=user)
+        except InvestorProfile.DoesNotExist:
+            raise PermissionDenied("You must be an investor to subscribe to a project.")
+
+        # Get the project and investment share
+        project = serializer.validated_data['project']
+        new_share = serializer.validated_data['investment_share']
+
+        # Calculate the total current investment share
+        total_current_share = InvestorTrackedProject.objects.filter(project=project).aggregate(
+            total=Sum('share')
+        )['total'] or 0
+
+        # Validate that the new share does not exceed 100%
+        if total_current_share + new_share > 100:
+            raise ValidationError(
+                {"investment_share": "Project is fully funded or the investment exceeds the allowed share."}
+            )
+
+        # Save the subscription
+        serializer.save(investor=investor, share=new_share)
+
+        # Calculate remaining funding
+        remaining_funding = 100 - (total_current_share + new_share)
+
+        return Response({
+            "message": "Subscription successful.",
+            "remaining_funding": remaining_funding
+        }, status=201)
