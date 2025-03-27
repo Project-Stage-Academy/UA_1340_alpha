@@ -158,6 +158,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'forum.wsgi.application'
 ASGI_APPLICATION = 'forum.asgi.application'
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer", # Redis I will add later
+    },
+}
+
+
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
@@ -178,7 +185,11 @@ DATABASES = {
 
 # Added MongoDB
 MONGO_DB = os.environ.get("MONGO_DATABASE")
-mongoengine.connect(MONGO_DB)
+mongoengine.connect(
+    db=MONGO_DB,
+    host=os.environ.get("MONGO_URL")
+)
+
 
 
 # Password validation
@@ -299,5 +310,3 @@ DEFAULT_FILE_STORAGE = 'forum.storages.MediaStorage'
 # Media files URL
 MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/'
 
-# set UTF-8 as default encoding
-DEFAULT_CHARSET = 'utf-8'
