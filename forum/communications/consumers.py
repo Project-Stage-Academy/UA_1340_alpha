@@ -1,8 +1,10 @@
 import json
 from datetime import datetime
+
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
-from .models import Room, Message
+
+from .models import Message, Room
 
 
 class ChatConsumer(AsyncWebsocketConsumer):

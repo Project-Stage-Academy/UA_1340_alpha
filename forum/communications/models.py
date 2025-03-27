@@ -1,8 +1,17 @@
+from datetime import datetime
+
 from django.db import models
+from mongoengine import (
+    DateTimeField,
+    Document,
+    EmailField,
+    ListField,
+    ReferenceField,
+    StringField,
+)
 
 from users.models import User
-from mongoengine import Document, ReferenceField, ListField, StringField, DateTimeField, EmailField
-from datetime import datetime
+
 
 class Communication(models.Model):
     id = models.AutoField(primary_key=True)

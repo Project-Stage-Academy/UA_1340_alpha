@@ -16,7 +16,6 @@ from datetime import timedelta
 from pathlib import Path
 
 import mongoengine
-
 from dotenv import load_dotenv
 
 load_dotenv()
