@@ -103,6 +103,7 @@ LOGGING = {
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -120,6 +121,7 @@ INSTALLED_APPS = [
     'dashboard',
     'storages',
     'drf_yasg',
+    'channels',
     'notifications',
 ]
 
@@ -152,6 +154,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'forum.wsgi.application'
+ASGI_APPLICATION = 'forum.asgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
