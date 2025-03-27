@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from startups.serializers import StartupProfileSerializer
+from .documents import ProjectDocument
 from .models import Project
 
 
@@ -76,3 +77,12 @@ class UpdateProjectSerializer(serializers.ModelSerializer):
         if funding_needed is not None and funding_goal is not None and funding_needed > funding_goal:
             raise serializers.ValidationError("Funding needed cannot exceed funding goal.")
         return data
+
+
+# Elasticsearch
+
+
+class ProjectDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectDocument
+        fields = '__all__'

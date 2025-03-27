@@ -4,9 +4,10 @@ services:
     container_name: api
     restart: always
     command: sh -c "sleep 5 && pylint forum/forum || true &&
-                    python forum/manage.py migrate &&
-                    python forum/manage.py collectstatic --noinput &&
-                    python forum/manage.py runserver 0.0.0.0:8000"
+      python forum/manage.py migrate &&
+      python forum/manage.py collectstatic --noinput &&
+      python forum/manage.py runserver 0.0.0.0:8000"
+      python forum/manage.py search_index --rebuild
     volumes:
       - .:/usr/src/
     ports:
@@ -79,6 +80,20 @@ services:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.1
+    container_name: elastic
+    volumes:
+      - esdata01:/usr/share/elasticsearch/data
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms128m -Xmx128m"
+    ports:
+      - "9200:9200"
+
+
 volumes:
   postgres-data:
   pgadmin-data:
+  esdata01:
