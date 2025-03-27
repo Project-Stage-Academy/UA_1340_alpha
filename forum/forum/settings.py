@@ -122,6 +122,7 @@ INSTALLED_APPS = [
     'storages',
     'drf_yasg',
     'channels',
+    'notifications',
 ]
 
 MIDDLEWARE = [
@@ -285,7 +286,7 @@ AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
 
 # S3 Storage for static and media files
-STATICFILES_STORAGE =  'forum.storages.StaticStorage'
+STATICFILES_STORAGE = 'forum.storages.StaticStorage'
 DEFAULT_FILE_STORAGE = 'forum.storages.MediaStorage'
 
 # Media files URL
