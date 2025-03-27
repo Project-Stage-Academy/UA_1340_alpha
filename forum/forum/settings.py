@@ -107,6 +107,7 @@ INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
+    'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
@@ -205,11 +206,11 @@ REST_FRAMEWORK = {
 AUTH_USER_MODEL = "users.User"
 
 # OAuth
+SITE_ID = 1
+
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_LOGIN_METHODS = {'email'}
-
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = "mandatory" 
 
@@ -219,20 +220,23 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'APP': {
-            'client_id': os.environ.get('OAUTH_GOOGLE_CLIENT_ID'),
-            'secret': os.environ.get('OAUTH_GOOGLE_CLIENT_SECRET'),
-            'key': ''
-        }
+    "google": {
+        "APP": {
+            "client_id": os.environ.get("OAUTH_GOOGLE_CLIENT_ID"),
+            "secret": os.environ.get("OAUTH_GOOGLE_CLIENT_SECRET"),
+            "key": "",
+        },
+        "SCOPE": ["email", "profile"],
+        "AUTH_PARAMS": {"access_type": "offline"},
     },
-    'github': { 
-        'APP': { 
-            'client_id': os.environ.get('OAUTH_GITHUB_CLIENT_ID'), 
-            'secret': os.environ.get('OAUTH_GITHUB_CLIENT_SECRET'), 
-            'key': ''
-        }
-    }
+    "github": {
+        "APP": {
+            "client_id": os.environ.get("OAUTH_GITHUB_CLIENT_ID"),
+            "secret": os.environ.get("OAUTH_GITHUB_CLIENT_SECRET"),
+            "key": "",
+        },
+        "SCOPE": ["user:email"],
+    },
 }
 
 SIMPLE_JWT = {
