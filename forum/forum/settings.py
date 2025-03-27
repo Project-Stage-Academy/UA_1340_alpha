@@ -15,6 +15,8 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+import mongoengine
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -173,6 +175,11 @@ DATABASES = {
         'PORT': os.environ.get('POSTGRES_PORT')
     },
 }
+
+# Added MongoDB
+MONGO_DB = os.environ.get("MONGO_DATABASE")
+mongoengine.connect(MONGO_DB)
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
