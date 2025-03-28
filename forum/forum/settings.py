@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import logging
 import logging.handlers
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -99,6 +100,8 @@ LOGGING = {
     },
 }
 
+if "test" in sys.argv:
+    logging.disable(logging.ERROR)
 
 # Application definition
 
