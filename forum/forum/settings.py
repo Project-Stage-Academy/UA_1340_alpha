@@ -122,8 +122,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'channels',
     'notifications',
-    'django_elasticsearch_dsl',
-    'django_elasticsearch_dsl_drf',
+
 ]
 
 MIDDLEWARE = [
