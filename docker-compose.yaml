@@ -3,14 +3,10 @@ services:
     build: .
     container_name: api
     restart: always
-    command: >
-      sh -c "
-      sleep 5 &&
-      pylint forum/forum || true &&
-      python forum/manage.py migrate &&
-      python forum/manage.py collectstatic --noinput &&
-      python forum/manage.py search_index --rebuild &&
-      python forum/manage.py runserver 0.0.0.0:8000"
+    command: sh -c "sleep 5 && pylint forum/forum || true &&
+                    python forum/manage.py migrate &&
+                    python forum/manage.py collectstatic --noinput &&
+                    python forum/manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/usr/src/
     ports:
@@ -18,7 +14,6 @@ services:
     depends_on:
       - db
       - redis
-      - elasticsearch
     environment:
       - IN_DOCKER=true
       - SECRET_KEY=${SECRET_KEY}
@@ -84,29 +79,6 @@ services:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
 
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.1
-    container_name: elastic
-    volumes:
-      - esdata01:/usr/share/elasticsearch/data
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
-    ports:
-      - "9200:9200"
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.17.1
-    container_name: kibana
-    depends_on:
-      - elasticsearch
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    ports:
-      - "5601:5601"
-
 volumes:
   postgres-data:
   pgadmin-data:
-  esdata01:
