@@ -295,11 +295,3 @@ MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaw
 
 # set UTF-8 as default encoding
 DEFAULT_CHARSET = 'utf-8'
-
-# Elasticsearch settings
-
-ELASTICSEARCH_DSL = {
-    'default': {
-        'hosts': 'localhost:9200'
-    },
-}
