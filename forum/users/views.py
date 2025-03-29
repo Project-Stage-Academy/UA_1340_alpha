@@ -410,36 +410,16 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                "email": openapi.Schema(
-                    type=openapi.TYPE_STRING,
-                    format=openapi.FORMAT_EMAIL,
-                    description="User's email address."
-                ),
-                "password": openapi.Schema(
-                    type=openapi.TYPE_STRING,
-                    format=openapi.FORMAT_PASSWORD,
-                    description="User's password."
-                ),
-                "role": openapi.Schema(
-                    type=openapi.TYPE_STRING,
-                    enum=["investor", "startup"],
-                    description="User's selected role for authentication ('startup' or 'investor')."
-                ),
+                "email": openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL, description="User's email address."),
+                "password": openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_PASSWORD, description="User's password."),
+                "role": openapi.Schema(type=openapi.TYPE_STRING, enum=["investor", "startup"], description="User's selected role for authentication ('startup' or 'investor')."),
             },
             required=["email", "password", "role"],
         ),
         responses={
             200: openapi.Response(
                 description="JWT access and refresh tokens set in cookies.",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        "message": openapi.Schema(
-                            type=openapi.TYPE_STRING,
-                            description="Success message indicating login was successful."
-                        ),
-                    },
-                ),
+                schema=openapi.Schema(type=openapi.TYPE_OBJECT, properties={"message": openapi.Schema(type=openapi.TYPE_STRING, description="Success message indicating login was successful.")}),
             ),
             400: openapi.Response(description="Invalid credentials or validation error."),
             401: openapi.Response(description="Unauthorized, email not verified."),
@@ -447,7 +427,31 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         }
     )
     def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        data = serializer.validated_data
+        access_token = data["access"]
+        refresh_token = data["refresh"]
+
+        response = Response({"message": "Login successful"}, status=status.HTTP_200_OK)
+        
+        response.set_cookie(
+            key=settings.SIMPLE_JWT["AUTH_COOKIE"],
+            value=access_token,
+            httponly=settings.SIMPLE_JWT["AUTH_COOKIE_HTTP_ONLY"],
+            secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
+            samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"]
+        )
+        response.set_cookie(
+            key=settings.SIMPLE_JWT["AUTH_COOKIE_REFRESH"],
+            value=refresh_token,
+            httponly=settings.SIMPLE_JWT["AUTH_COOKIE_HTTP_ONLY"],
+            secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
+            samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"]
+        )
+        
+        return response
 
 class CustomTokenRefreshView(TokenRefreshView):
     """

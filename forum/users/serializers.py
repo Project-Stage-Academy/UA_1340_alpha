@@ -125,22 +125,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         refresh.payload["email"] = user.email
         refresh.payload["role"] = selected_role
 
-        access_token = str(refresh.access_token)
-        refresh_token = str(refresh)
+        # Return tokens in validated data
+        data["refresh"] = str(refresh)
+        data["access"] = str(refresh.access_token)
 
-        response = Response({"message": "Login successful"})
-        response.set_cookie(
-            key=settings.SIMPLE_JWT["AUTH_COOKIE"], 
-            value=access_token, 
-            httponly=settings.SIMPLE_JWT["AUTH_COOKIE_HTTP_ONLY"], 
-            secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
-            samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"]
-        )
-        response.set_cookie(
-            key=settings.SIMPLE_JWT["AUTH_COOKIE_REFRESH"], 
-            value=refresh_token,
-            httponly=settings.SIMPLE_JWT["AUTH_COOKIE_HTTP_ONLY"], 
-            secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
-            samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"]
-        )
-        return response
+        return data
