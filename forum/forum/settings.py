@@ -141,7 +141,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
-    'users.middleware.JWTAuthMiddleware',
 ]
 
 ROOT_URLCONF = 'forum.urls'
@@ -203,7 +202,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'users.utils.TokenAuthSupportCookie',
     )
 }
 
