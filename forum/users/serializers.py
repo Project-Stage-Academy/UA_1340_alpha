@@ -82,7 +82,6 @@ class UserSerializer(serializers.ModelSerializer):
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
     Custom serializer for obtaining JWT tokens where a user selects a role.
-    Tokens are set in HTTP-only cookies instead of being returned in JSON.
 
     The following user attributes are included in the token:
     - email: User's email address.
@@ -94,7 +93,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         attrs (dict): Authentication attributes.
 
     Returns:
-        Response: HTTP response with tokens set in cookies.
+        dict: A JWT token containing additional user fields.
     """
 
     def validate(self, attrs):
@@ -125,7 +124,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         refresh.payload["email"] = user.email
         refresh.payload["role"] = selected_role
 
-        # Return tokens in validated data
         data["refresh"] = str(refresh)
         data["access"] = str(refresh.access_token)
 
