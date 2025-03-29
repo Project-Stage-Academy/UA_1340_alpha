@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .models import User
 from .serializers import CustomTokenObtainPairSerializer, UserSerializer
@@ -400,12 +400,13 @@ class ResendVerificationEmailView(APIView):
 class CustomTokenObtainPairView(TokenObtainPairView):
     """
     Allow users to obtain a pair of access and refresh tokens using their email and password.
+    Tokens will be set in HTTP-only cookies instead of being returned in the response body.
     """
     serializer_class = CustomTokenObtainPairSerializer
 
     @swagger_auto_schema(
         operation_summary="Obtain JWT Token",
-        operation_description="Authenticate user and return JWT access & refresh tokens.",
+        operation_description="Authenticate user and return JWT access & refresh tokens, which will be set in HTTP-only cookies.",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -429,17 +430,13 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         ),
         responses={
             200: openapi.Response(
-                description="JWT access and refresh tokens returned.",
+                description="JWT access and refresh tokens set in cookies.",
                 schema=openapi.Schema(
                     type=openapi.TYPE_OBJECT,
                     properties={
-                        "access": openapi.Schema(
+                        "message": openapi.Schema(
                             type=openapi.TYPE_STRING,
-                            description="JWT access token."
-                        ),
-                        "refresh": openapi.Schema(
-                            type=openapi.TYPE_STRING,
-                            description="JWT refresh token."
+                            description="Success message indicating login was successful."
                         ),
                     },
                 ),
@@ -452,18 +449,39 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
 
-
-class LogoutAPIView(APIView):
+class CustomTokenRefreshView(TokenRefreshView):
     """
-    API endpoint that allows users to log out by blacklisting their refresh token.
-    Requires the user to be authenticated.
+    Custom Token Refresh View to retrieve the refresh token from cookies.
     """
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({"error": "Refresh token not found in cookies."}, status=status.HTTP_400_BAD_REQUEST)
 
-    permission_classes = (IsAuthenticated,)
+        try:
+            refresh = RefreshToken(refresh_token)
+            data = {
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+            }
+            response = Response(data)
+            response.set_cookie(
+                key=settings.SIMPLE_JWT["AUTH_COOKIE_REFRESH"], 
+                value=str(refresh), 
+                httponly=settings.SIMPLE_JWT["AUTH_COOKIE_HTTP_ONLY"], 
+                secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
+                samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"]
+            )
+            return response
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
-        operation_summary="User Logout",
-        operation_description="Log out the user by blacklisting the refresh token.",
+        operation_summary="Log out the user by invalidating the refresh token.",
+        operation_description="Log out the user by blacklisting the refresh token and deleting the cookies for access and refresh tokens.",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -475,31 +493,44 @@ class LogoutAPIView(APIView):
             required=["refresh"],
         ),
         responses={
-            205: openapi.Response(description="Successfully logged out."),
-            400: openapi.Response(description="Invalid or missing refresh token."),
+            200: openapi.Response(
+                description="Successfully logged out.",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "message": openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            description="Logout confirmation message"
+                        )
+                    }
+                )
+            ),
+            400: openapi.Response(
+                description="Invalid or missing refresh token.",
+            ),
+            500: openapi.Response(
+                description="An unexpected error occurred.",
+            ),
         }
     )
     def post(self, request):
-        """
-        Handle POST request to blacklist the provided refresh token.
-        Args:
-            request: The HTTP request object containing the refresh token in the request data.
-        Returns:
-            A Response object with status 205 if successful, or 400 if an error occurs.
-        """
         try:
-            refresh_token = request.data.get("refresh")
+            refresh_token = request.COOKIES.get('refresh_token')
             if not refresh_token:
-                return Response({"error": "Refresh token is required"},
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "Refresh token not provided."}, status=status.HTTP_400_BAD_REQUEST)
 
             token = RefreshToken(refresh_token)
             token.blacklist()
-            return Response({"message": "Successfully logged out."},
-                            status=status.HTTP_205_RESET_CONTENT)
+
+            response = Response({"message": "User successfully logged out."}, status=status.HTTP_200_OK)
+            response.delete_cookie('access_token')
+            response.delete_cookie('refresh_token') 
+
+            return response
         except TokenError:
-            return Response({"error": "Invalid or expired token"},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+        except KeyError:
+            return Response({"error": "Refresh token not provided."}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return Response({"error": str(e)},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "An unexpected error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

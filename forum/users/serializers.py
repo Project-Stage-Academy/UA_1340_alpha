@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.core.validators import (
     MaxLengthValidator,
     MinLengthValidator,
@@ -7,6 +8,7 @@ from django.core.validators import (
 )
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -80,21 +82,19 @@ class UserSerializer(serializers.ModelSerializer):
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
     Custom serializer for obtaining JWT tokens where a user selects a role.
+    Tokens are set in HTTP-only cookies instead of being returned in JSON.
 
     The following user attributes are included in the token:
     - email: User's email address.
     - id: User's unique identifier.
     - role: The selected role for authentication ('startup' or 'investor').
 
-    Logging:
-    - Logs the token issuance with the user's email and selected role.
-
     Args:
         user (User): The user object.
         attrs (dict): Authentication attributes.
 
     Returns:
-        dict: A JWT token containing additional user fields.
+        Response: HTTP response with tokens set in cookies.
     """
 
     def validate(self, attrs):
@@ -103,7 +103,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         user = self.user
         selected_role = self.context["request"].data.get("role")
 
-        # All validations can later be moved to a utilities module.
         if selected_role not in ["startup", "investor"]:
             raise ValidationError({"role": "Invalid role. Choose 'startup' or 'investor'."})
 
@@ -123,13 +122,25 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             raise ValidationError({"status": "Your account is inactive. Please contact support."})
 
         refresh = RefreshToken.for_user(user)
-
         refresh.payload["email"] = user.email
         refresh.payload["role"] = selected_role
 
-        data["access"] = str(refresh.access_token)
-        data["refresh"] = str(refresh)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
 
-        logger.info("Token issued for user: %s with selected role: %s", user.email, selected_role)
-
-        return data
+        response = Response({"message": "Login successful"})
+        response.set_cookie(
+            key=settings.SIMPLE_JWT["AUTH_COOKIE"], 
+            value=access_token, 
+            httponly=settings.SIMPLE_JWT["AUTH_COOKIE_HTTP_ONLY"], 
+            secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
+            samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"]
+        )
+        response.set_cookie(
+            key=settings.SIMPLE_JWT["AUTH_COOKIE_REFRESH"], 
+            value=refresh_token,
+            httponly=settings.SIMPLE_JWT["AUTH_COOKIE_HTTP_ONLY"], 
+            secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
+            samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"]
+        )
+        return response
