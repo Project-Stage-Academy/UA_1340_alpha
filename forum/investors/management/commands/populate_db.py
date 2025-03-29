@@ -24,7 +24,7 @@ class Command(BaseCommand):
 
         # Create industries
 
-        industry = ["Tech1", "Healthcare", "Finance", "Real Estate", "Energy"]
+        industry = ["Tech", "Healthcare", "Finance", "Real Estate", "Energy"]
         industries = [Industry.objects.create(name=name) for name in industry]
         self.stdout.write(self.style.SUCCESS("Industries created."))
 

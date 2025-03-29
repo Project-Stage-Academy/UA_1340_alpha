@@ -155,7 +155,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         # Ensure new subscription does not exceed 100% funding
         if total_current_share + new_share > 100:
             raise serializers.ValidationError(
-                {"investment_share": "Project is fully funded. No further subscriptions allowed."}
+                {"share": "Project is fully funded. No further subscriptions allowed."}
             )
 
         return data
