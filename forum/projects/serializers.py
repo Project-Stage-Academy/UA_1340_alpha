@@ -76,3 +76,19 @@ class UpdateProjectSerializer(serializers.ModelSerializer):
         if funding_needed is not None and funding_goal is not None and funding_needed > funding_goal:
             raise serializers.ValidationError("Funding needed cannot exceed funding goal.")
         return data
+
+
+class ProjectSearchSerializer(serializers.ModelSerializer):
+    startup_name = serializers.CharField(source='startup.company_name')
+
+    class Meta:
+        model = Project
+        fields = [
+            'id',
+            'title',
+            'description',
+            'status',
+            'funding_goal',
+            'startup_name',
+            'created_at'
+        ]
