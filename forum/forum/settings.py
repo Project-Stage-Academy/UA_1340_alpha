@@ -110,6 +110,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_elasticsearch_dsl',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -298,7 +299,7 @@ DEFAULT_CHARSET = 'utf-8'
 # Elasticsearch settings
 ELASTICSEARCH_DSL = {
     'default': {
-        'hosts': 'http://localhost:9200',
+        'hosts': 'http://elasticsearch:9200',
         'http_auth': None,
     }
 }

@@ -7,6 +7,7 @@ services:
                     python forum/manage.py migrate &&
                     python forum/manage.py collectstatic --noinput &&
                     python forum/manage.py runserver 0.0.0.0:8000"
+
     volumes:
       - .:/usr/src/
     ports:
@@ -14,6 +15,7 @@ services:
     depends_on:
       - db
       - redis
+      - elasticsearch
     environment:
       - IN_DOCKER=true
       - SECRET_KEY=${SECRET_KEY}
