@@ -98,6 +98,7 @@ services:
     restart: always
     depends_on:
       - api
+      - elasticsearch
     environment:
       -  ELASTICSEARCH_HOSTS=http://elasticsearch:9200
     ports:
