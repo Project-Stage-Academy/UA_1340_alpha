@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.core.validators import (
     MaxLengthValidator,
     MinLengthValidator,
@@ -7,6 +8,7 @@ from django.core.validators import (
 )
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -86,9 +88,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     - id: User's unique identifier.
     - role: The selected role for authentication ('startup' or 'investor').
 
-    Logging:
-    - Logs the token issuance with the user's email and selected role.
-
     Args:
         user (User): The user object.
         attrs (dict): Authentication attributes.
@@ -96,6 +95,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     Returns:
         dict: A JWT token containing additional user fields.
     """
+    role = serializers.ChoiceField(choices=["startup", "investor"], required=True)
 
     def validate(self, attrs):
         data = super().validate(attrs)
@@ -103,7 +103,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         user = self.user
         selected_role = self.context["request"].data.get("role")
 
-        # All validations can later be moved to a utilities module.
         if selected_role not in ["startup", "investor"]:
             raise ValidationError({"role": "Invalid role. Choose 'startup' or 'investor'."})
 
@@ -123,13 +122,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             raise ValidationError({"status": "Your account is inactive. Please contact support."})
 
         refresh = RefreshToken.for_user(user)
-
         refresh.payload["email"] = user.email
         refresh.payload["role"] = selected_role
 
-        data["access"] = str(refresh.access_token)
         data["refresh"] = str(refresh)
-
-        logger.info("Token issued for user: %s with selected role: %s", user.email, selected_role)
+        data["access"] = str(refresh.access_token)
 
         return data
