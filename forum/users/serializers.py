@@ -127,3 +127,40 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data["access"] = str(refresh.access_token)
 
         return data
+
+
+class CustomRoleSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(choices=["startup", "investor"], required=True)
+
+    def validate(self, attrs):
+        user = self.context["request"].user
+        assert isinstance(user, User)
+        selected_role = attrs.get("role")
+
+        if selected_role not in ["startup", "investor"]:
+            raise serializers.ValidationError({"role": "Invalid role. Choose 'startup' or 'investor'."})
+
+        if selected_role == "startup" and not user.is_startup:
+            raise serializers.ValidationError({"role": "You are not registered as a startup."})
+
+        if selected_role == "investor" and not user.is_investor:
+            raise serializers.ValidationError({"role": "You are not registered as an investor."})
+
+        if not user.is_email_confirmed:
+            raise serializers.ValidationError({"email": "Email not verified. Verify your email and try again."})
+
+        if user.status == 'banned':
+            raise serializers.ValidationError({"status": "Your account has been banned."})
+
+        if not user.is_active:
+            raise serializers.ValidationError({"status": "Your account is inactive."})
+
+        # Генерація токенів
+        refresh = RefreshToken.for_user(user)
+        refresh.payload["email"] = user.email
+        refresh.payload["role"] = selected_role
+
+        return {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token)
+        }

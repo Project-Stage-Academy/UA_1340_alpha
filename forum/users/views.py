@@ -19,7 +19,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .models import User
-from .serializers import CustomTokenObtainPairSerializer, UserSerializer
+from .serializers import (
+    CustomRoleSerializer,
+    CustomTokenObtainPairSerializer,
+    UserSerializer,
+)
 from .utils import (
     send_reset_password_email,
     send_verification_email,
@@ -568,7 +572,7 @@ class LogoutView(APIView):
 class SelectRoleView(GenericAPIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication] 
-    serializer_class = CustomTokenObtainPairSerializer
+    serializer_class = CustomRoleSerializer
 
     @swagger_auto_schema(
         operation_summary="Select User Role",
