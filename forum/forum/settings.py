@@ -250,6 +250,9 @@ SOCIALACCOUNT_PROVIDERS = {
             "key": "",
         },
         "SCOPE": ["user:email"],
+        "AUTH_PARAMS": {
+            "prompt": "select_account"
+            },
         "VERIFIED_EMAIL": True,
     },
 }
