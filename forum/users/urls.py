@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 
 from .views import (
     LogoutAPIView,
@@ -11,6 +11,7 @@ from .views import (
 )
 
 urlpatterns = [
+    path("accounts/", include("allauth.urls")),
     path('signup/', SignupView.as_view(), name='signup'),
     path('logout/', LogoutAPIView.as_view(), name='logout'),
     path("resend-verication-email/", ResendVerificationEmailView.as_view(), name="resend-verification-email"),
