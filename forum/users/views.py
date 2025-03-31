@@ -453,6 +453,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         
         return response
 
+
 class CustomTokenRefreshView(TokenRefreshView):
     """
     Custom Token Refresh View to retrieve the refresh token from cookies.
@@ -479,6 +480,7 @@ class CustomTokenRefreshView(TokenRefreshView):
             return response
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
@@ -537,4 +539,3 @@ class LogoutView(APIView):
             return Response({"error": "Refresh token not provided."}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"error": "An unexpected error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
