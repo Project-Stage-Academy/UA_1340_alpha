@@ -15,6 +15,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+from django.urls import reverse_lazy
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -214,6 +215,7 @@ SITE_ID = 1
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_LOGIN_REDIRECT_URL = reverse_lazy('select_role')
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = "mandatory" 
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True

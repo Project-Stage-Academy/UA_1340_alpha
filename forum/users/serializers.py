@@ -1,6 +1,5 @@
 import logging
 
-from django.conf import settings
 from django.core.validators import (
     MaxLengthValidator,
     MinLengthValidator,
@@ -8,7 +7,6 @@ from django.core.validators import (
 )
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
