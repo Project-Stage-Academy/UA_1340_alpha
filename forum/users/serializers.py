@@ -95,6 +95,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     Returns:
         dict: A JWT token containing additional user fields.
     """
+    role = serializers.ChoiceField(choices=["startup", "investor"], required=True)
 
     def validate(self, attrs):
         data = super().validate(attrs)

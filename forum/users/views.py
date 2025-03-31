@@ -435,7 +435,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         refresh_token = data["refresh"]
 
         response = Response({"message": "Login successful"}, status=status.HTTP_200_OK)
-        
+
         response.set_cookie(
             key=settings.SIMPLE_JWT["AUTH_COOKIE"],
             value=access_token,
@@ -456,27 +456,47 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
 class CustomTokenRefreshView(TokenRefreshView):
     """
-    Custom Token Refresh View to retrieve the refresh token from cookies.
+    Custom Token Refresh View to retrieve the refresh token from cookies or Authorization header.
     """
     def post(self, request, *args, **kwargs):
+        # Try to get refresh token from cookie first
         refresh_token = request.COOKIES.get('refresh_token')
+
+        # If not in cookie, try Authorization header
         if not refresh_token:
-            return Response({"error": "Refresh token not found in cookies."}, status=status.HTTP_400_BAD_REQUEST)
+            auth_header = request.headers.get('Authorization', '')
+            if auth_header.startswith('Bearer '):
+                refresh_token = auth_header.split('Bearer ')[1].strip()
+            else:
+                return Response(
+                    {"error": "Refresh token not found in cookies or Authorization header"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        if not refresh_token:
+            return Response(
+                {"error": "Refresh token is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             refresh = RefreshToken(refresh_token)
             data = {
                 'access': str(refresh.access_token),
-                'refresh': str(refresh),
             }
-            response = Response(data)
-            response.set_cookie(
-                key=settings.SIMPLE_JWT["AUTH_COOKIE_REFRESH"], 
-                value=str(refresh), 
-                httponly=settings.SIMPLE_JWT["AUTH_COOKIE_HTTP_ONLY"], 
-                secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
-                samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"]
-            )
+            if settings.SIMPLE_JWT["ROTATE_REFRESH_TOKENS"]:
+                data['refresh'] = str(refresh)
+                response = Response(data)
+                response.set_cookie(
+                    key=settings.SIMPLE_JWT["AUTH_COOKIE_REFRESH"],
+                    value=str(refresh),
+                    httponly=settings.SIMPLE_JWT["AUTH_COOKIE_HTTP_ONLY"],
+                    secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
+                    samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"]
+                )
+            else:
+                response = Response(data)
+
             return response
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
