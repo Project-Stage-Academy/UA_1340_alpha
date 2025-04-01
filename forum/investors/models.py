@@ -77,3 +77,16 @@ class InvestorTrackedProject(models.Model):
 
     def __str__(self):
         return f"{self.investor.company_name} - {self.project.title} - {self.share}%"
+
+
+class ViewedStartup(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='viewed_startups')
+    startup = models.ForeignKey(StartupProfile, on_delete=models.CASCADE, related_name='viewed_by')
+    viewed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'startup')
+        ordering = ['-viewed_at']
+
+    def __str__(self):
+        return f"{self.user.username} viewed {self.startup.company_name}"
