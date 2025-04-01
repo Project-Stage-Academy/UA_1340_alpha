@@ -9,6 +9,10 @@ from celery.exceptions import MaxRetriesExceededError
 from django.conf import settings
 from django.core.mail import send_mail
 
+from investors.models import ViewedStartup
+from startups.models import StartupProfile
+from users.models import User
+
 logger = logging.getLogger(__name__)
 
 
@@ -82,3 +86,13 @@ def send_email_task(subject: str, message: str, recipient_list: List[str], html_
         logger.info(f"Email sent successfully to {recipient_list}")
     except Exception as e:
         logger.error(f"Failed to send email to {recipient_list}: {e}")
+
+
+@shared_task
+def save_viewed_startup(user: User, startup: StartupProfile):
+    try:
+        if user.is_investor:
+            ViewedStartup.objects.update_or_create(user=user, startup=startup)
+            logger.info(f"Viewed startup saved successfully for {user}")
+    except Exception as e:
+        logger.error(f"Failed to save viewed startup for {user}: {e}")
