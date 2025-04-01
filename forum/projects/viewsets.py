@@ -11,6 +11,16 @@ from .serializers import ProjectSearchSerializer
 
 
 class ProjectSearchView(APIView, PageNumberPagination):
+
+    """
+    API view for searching projects.
+    This view allows users to search for projects based on a query string and filter by status.
+    It uses Elasticsearch for searching and supports pagination.
+    The search is performed on the title and description fields of the Project model.
+    The results are paginated, and the response includes the total number of results,
+    the current page number, and the results for that page.
+
+    """
     permission_classes = [IsAuthenticated]
     document = ProjectDocument
     serializer_class = ProjectSearchSerializer
