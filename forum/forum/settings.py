@@ -119,6 +119,7 @@ INSTALLED_APPS = [
     'startups',
     'investors',
     'projects',
+    # 'projects.apps.ProjectsConfig'
     'communications',
     'dashboard',
     'storages',

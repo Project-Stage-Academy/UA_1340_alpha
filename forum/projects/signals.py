@@ -9,7 +9,7 @@ from .documents import ProjectDocument
 
 
 @receiver(post_save, sender=Project)
-def project_updated(sender, instance, created, **kwargs):
+def celery_project_update(sender, instance, created, **kwargs):
     """
     Sends an asynchronous update notification when a Project is created or updated.
 
@@ -32,7 +32,7 @@ def project_updated(sender, instance, created, **kwargs):
 
 
 @receiver(post_save, sender=Project)
-def project_updated(sender, instance, created, **kwargs):
+def websocket_project_update(sender, instance, created, **kwargs):
     """
     Signal receiver for project updates.
 
@@ -70,7 +70,7 @@ def update_project_document(sender, instance, **kwargs):
         instance: The instance being saved.
         kwargs: Additional keyword arguments.
     """
-    ProjectDocument().update(instance)
+    ProjectDocument().save(instance)
 
 
 @receiver(post_delete, sender=Project)
