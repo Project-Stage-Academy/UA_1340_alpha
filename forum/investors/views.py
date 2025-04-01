@@ -25,7 +25,6 @@ from .serializers import (
     CreateInvestorTrackedProjectSerializer,
     InvestorPreferredIndustrySerializer,
     InvestorProfileSerializer,
-    InvestorSavedStartupSerializer,
     InvestorTrackedProjectSerializer,
     SubscriptionSerializer,
 )
@@ -568,13 +567,15 @@ class SavedStartupsApiView(APIView):
 
             search_field = request.query_params.get('search_field', 'company_name')  # Default to 'name'
             search_term = request.query_params.get('search', None)
+            if not hasattr(StartupProfile, search_field):
+                search_term = None
 
             if search_term:
                 filter_kwargs = {f"{search_field}__icontains": search_term}
                 saved_startups = saved_startups.filter(**filter_kwargs)
 
             sort_field = request.query_params.get('sort', None)
-            if sort_field:
+            if sort_field and hasattr(StartupProfile, sort_field):
                 saved_startups = saved_startups.order_by(sort_field)
 
             serializer = StartupProfileSerializer(saved_startups, many=True)
