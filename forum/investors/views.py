@@ -3,7 +3,7 @@ import logging
 from django.db.models import Sum
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import permissions, status
+from rest_framework import generics, permissions, status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
@@ -12,11 +12,13 @@ from rest_framework.views import APIView
 
 from startups.models import StartupProfile
 from startups.serializers import StartupProfileSerializer
+from users.permissions import IsInvestor
 from .models import (
     InvestorPreferredIndustry,
     InvestorProfile,
     InvestorSavedStartup,
     InvestorTrackedProject,
+    ViewedStartup,
 )
 from .serializers import (
     CreateInvestorPreferredIndustrySerializer,
@@ -27,6 +29,7 @@ from .serializers import (
     InvestorProfileSerializer,
     InvestorTrackedProjectSerializer,
     SubscriptionSerializer,
+    ViewedStartupSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -812,3 +815,68 @@ class SubscriptionCreateView(APIView):
             "message": "Subscription successful.",
             "remaining_funding": remaining_funding
         }, status=201)
+
+
+class RecentlyViewedStartupsView(generics.ListAPIView):
+    """
+    API endpoint to retrieve recently viewed startups by an investor.
+    """
+    serializer_class = ViewedStartupSerializer
+    permission_classes = [IsAuthenticated, IsInvestor]
+
+    def get_queryset(self):
+        return ViewedStartup.objects.filter(user=self.request.user)
+
+
+class LogStartupView(APIView):
+    """
+    API endpoint to save a startup viewed by an investor in database.
+    """
+    permission_classes = [IsAuthenticated, IsInvestor]
+
+    @swagger_auto_schema(
+        responses={
+            200: "Startup view saved successfully",
+            403: "User is not an investor",
+            404: "Startup not found",
+        }
+    )
+    def post(self, request, startup_id):
+        """
+        Logs a startup viewed by an investor.
+
+        :param request:
+        :param startup_id:
+        :return:
+        """
+        startup = StartupProfile.objects.filter(id=startup_id).first()
+        if not startup:
+            return Response(
+                {"error": "Startup not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        ViewedStartup.objects.update_or_create(user=request.user, startup=startup)
+        return Response(
+            {"message": "Startup view saved successfully."},
+            status=status.HTTP_200_OK
+        )
+
+class ClearViewedStartups(APIView):
+    """
+    API endpoint to clear recently viewed startups by an investor.
+    """
+    permission_classes = [IsAuthenticated, IsInvestor]
+
+    @swagger_auto_schema(
+        responses={
+            200: "Recently viewed startups cleared successfully",
+            403: "User is not an investor",
+        }
+    )
+    def delete(self, request):
+        ViewedStartup.objects.filter(user=request.user).delete()
+        return Response(
+            {"message": "Recently viewed startups cleared successfully."},
+            status=status.HTTP_200_OK
+        )
