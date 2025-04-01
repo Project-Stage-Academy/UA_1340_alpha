@@ -1,5 +1,7 @@
 import logging
+from decimal import Decimal
 
+from django.db import IntegrityError, transaction
 from django.db.models import Sum
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -12,6 +14,7 @@ from rest_framework.views import APIView
 
 from startups.models import StartupProfile
 from startups.serializers import StartupProfileSerializer
+from users.permissions import IsInvestor
 from .models import (
     InvestorPreferredIndustry,
     InvestorProfile,
@@ -751,64 +754,92 @@ class SubscriptionCreateView(APIView):
     - Ensures that total funding does not exceed 100%.
     - Returns the remaining available funding after subscription.
     """
-    permission_classes = [permissions.IsAuthenticated]
+
+    permission_classes = [permissions.IsAuthenticated, IsInvestor]
 
     @swagger_auto_schema(
         request_body=SubscriptionSerializer,
         responses={
             201: openapi.Response(
                 description="Subscription successful",
-                examples={
-                    "application/json": {
-                        "message": "Subscription successful.",
-                        "remaining_funding": 50
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "message": openapi.Schema(type=openapi.TYPE_STRING, example="Subscription successful."),
+                        "remaining_funding": openapi.Schema(type=openapi.TYPE_NUMBER, format=openapi.FORMAT_DECIMAL,
+                                                            example=50)
                     }
-                }
+                )
             ),
-            400: "Invalid input or exceeding funding limit",
-            403: "User is not an investor"
+            400: openapi.Response(
+                description="Invalid input or exceeding funding limit",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "error": openapi.Schema(type=openapi.TYPE_STRING,
+                                                example="Duplicate subscription entry, already exists.")
+                    }
+                )
+            ),
+            403: openapi.Response(
+                description="User is not an investor",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "detail": openapi.Schema(type=openapi.TYPE_STRING,
+                                                 example="You must be an investor to subscribe to a project.")
+                    }
+                )
+            )
         }
     )
     def post(self, request):
-        """
-        Validates and creates an investor subscription.
-
-        - Ensures the user has an investor profile.
-        - Checks if the total funding exceeds 100% before saving.
-        - Returns a response indicating the remaining funding.
-        """
         user = request.user
         serializer = SubscriptionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Ensure the user has an investor profile
         try:
             investor = InvestorProfile.objects.get(user=user)
         except InvestorProfile.DoesNotExist:
             raise PermissionDenied("You must be an investor to subscribe to a project.")
 
-        # Get the project and investment share
         project = serializer.validated_data['project']
-        new_share = serializer.validated_data['investment_share']
+        new_share = serializer.validated_data['share']
 
-        # Calculate the total current investment share
-        total_current_share = InvestorTrackedProject.objects.filter(project=project).aggregate(
-            total=Sum('share')
-        )['total'] or 0
+        try:
+            with transaction.atomic():
+                # Calculate current share BEFORE creating subscription
+                total_current_share = Decimal(
+                    InvestorTrackedProject.objects.filter(project=project).aggregate(
+                        total_investment=Sum('share')
+                    )['total_investment'] or 0
+                ).quantize(Decimal('0.00'))
 
-        # Validate that the new share does not exceed 100%
-        if total_current_share + new_share > 100:
-            raise ValidationError(
-                {"investment_share": "Project is fully funded or the investment exceeds the allowed share."}
-            )
+                if total_current_share + new_share > 100:
+                    raise ValidationError({
+                        "investment_share": "Project is fully funded or the investment exceeds the allowed share."
+                    })
 
-        # Save the subscription
-        serializer.save(investor=investor, share=new_share)
+                # Create subscription atomically with funding check
+                subscription, created = InvestorTrackedProject.objects.get_or_create(
+                    investor=investor,
+                    project=project,
+                    defaults={'share': new_share}
+                )
 
-        # Calculate remaining funding
-        remaining_funding = 100 - (total_current_share + new_share)
+                if not created:
+                    return Response(
+                        {"error": "This investor is already tracking this project."},
+                        status=400
+                    )
 
-        return Response({
-            "message": "Subscription successful.",
-            "remaining_funding": remaining_funding
-        }, status=201)
+                remaining_funding = 100 - (total_current_share + new_share)
+
+            return Response({
+                "message": "Subscription successful.",
+                "remaining_funding": remaining_funding
+            }, status=201)
+
+        except IntegrityError as e:
+            logger.error(f"Subscription integrity error: {str(e)}")
+            return Response({"error": "Subscription conflict occurred."}, status=400)
