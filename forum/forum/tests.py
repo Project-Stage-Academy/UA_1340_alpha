@@ -2,7 +2,7 @@ import logging
 import unittest
 from unittest.mock import MagicMock, patch
 
-from forum.tasks import send_email_task, send_email_task_no_ssl
+from forum.tasks import send_email_task_no_ssl
 
 logger = logging.getLogger("forum.tasks")
 logger.setLevel(logging.ERROR)
@@ -58,7 +58,7 @@ class TestEmailTasks(unittest.TestCase):
         subject = "Test Subject"
         message = "Test Message"
         
-        send_email_task(subject, message, recipient_list)
+        send_email_task_no_ssl(subject, message, recipient_list)
         
         mock_send_mail.assert_called_once_with(
             subject,
@@ -80,7 +80,7 @@ class TestEmailTasks(unittest.TestCase):
         message = "Test Message"
         
         with self.assertLogs(logger, level="ERROR") as log:
-            send_email_task(subject, message, recipient_list)
+            send_email_task_no_ssl(subject, message, recipient_list)
         
         self.assertIn("Failed to send email", log.output[0])
 
