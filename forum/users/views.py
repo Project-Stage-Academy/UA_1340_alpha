@@ -632,8 +632,7 @@ class SelectRoleView(GenericAPIView):
 
 
 class SetRoleView(GenericAPIView):
-    permission_classes = [IsAuthenticated, ]
-    authentication_classes = [SessionAuthentication]
+    permission_classes = [AllowAny, ]
     serializer_class = SetRoleSerializer
 
     @swagger_auto_schema(
@@ -684,5 +683,5 @@ class SetRoleView(GenericAPIView):
 
             return response
 
-        except serializers.ValidationError as e:
+        except ValidationError as e:
             return Response({"error": str(e.detail)}, status=status.HTTP_400_BAD_REQUEST)

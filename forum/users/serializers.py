@@ -1,5 +1,7 @@
 import logging
 
+from allauth.socialaccount.helpers import complete_social_login
+from allauth.socialaccount.models import SocialLogin
 from django.core.validators import (
     MaxLengthValidator,
     MinLengthValidator,
@@ -165,7 +167,7 @@ class CustomRoleSerializer(serializers.Serializer):
             "access": str(refresh.access_token)
         }
     
-    
+
 class SetRoleSerializer(serializers.Serializer):
     roles = serializers.MultipleChoiceField(
         choices=["startup", "investor"],
@@ -174,12 +176,23 @@ class SetRoleSerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
-        user = self.context["request"].user
-        assert isinstance(user, User)
+        request = self.context["request"]
         selected_roles = attrs.get("roles")
 
         if not selected_roles:
             raise serializers.ValidationError({"roles": "At least one role must be selected."})
+
+        sociallogin_data = request.session.get('sociallogin')
+        if not sociallogin_data:
+            raise serializers.ValidationError({"error": "No social login data found. Please start signup again."})
+
+        sociallogin = SocialLogin.deserialize(sociallogin_data)
+        from allauth.socialaccount.helpers import complete_social_login
+        complete_social_login(request, sociallogin)
+
+        user = sociallogin.user
+        if not isinstance(user, User):
+            raise ValidationError({"error": "Failed to create user."})
 
         if "startup" in selected_roles:
             user.is_startup = True
@@ -197,13 +210,14 @@ class SetRoleSerializer(serializers.Serializer):
 
         user.save()
 
-        primary_role = selected_roles[0] if selected_roles else None
+        primary_role = list(selected_roles)[0]
 
         refresh = RefreshToken.for_user(user)
         refresh.payload["email"] = user.email
-        refresh.payload["role"] = primary_role 
+        refresh.payload["role"] = primary_role
 
         return {
             "refresh": str(refresh),
             "access": str(refresh.access_token)
         }
+    
