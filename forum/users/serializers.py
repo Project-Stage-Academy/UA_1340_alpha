@@ -130,7 +130,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
 class CustomRoleSerializer(serializers.Serializer):
-    role = serializers.ChoiceField(choices=["startup", "investor"], required=True)
+    role = serializers.ChoiceField(choices=["startup", "investor", ], required=True)
 
     def validate(self, attrs):
         user = self.context["request"].user
@@ -159,6 +159,49 @@ class CustomRoleSerializer(serializers.Serializer):
         refresh = RefreshToken.for_user(user)
         refresh.payload["email"] = user.email
         refresh.payload["role"] = selected_role
+
+        return {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token)
+        }
+    
+    
+class SetRoleSerializer(serializers.Serializer):
+    roles = serializers.MultipleChoiceField(
+        choices=["startup", "investor"],
+        required=True,
+        help_text="Select one or both roles: 'startup', 'investor'."
+    )
+
+    def validate(self, attrs):
+        user = self.context["request"].user
+        assert isinstance(user, User)
+        selected_roles = attrs.get("roles")
+
+        if not selected_roles:
+            raise serializers.ValidationError({"roles": "At least one role must be selected."})
+
+        if "startup" in selected_roles:
+            user.is_startup = True
+        if "investor" in selected_roles:
+            user.is_investor = True
+
+        if not user.is_email_confirmed:
+            user.is_email_confirmed = True
+
+        if user.status == 'banned':
+            raise serializers.ValidationError({"status": "Your account has been banned."})
+
+        if not user.is_active:
+            raise serializers.ValidationError({"status": "Your account is inactive."})
+
+        user.save()
+
+        primary_role = selected_roles[0] if selected_roles else None
+
+        refresh = RefreshToken.for_user(user)
+        refresh.payload["email"] = user.email
+        refresh.payload["role"] = primary_role 
 
         return {
             "refresh": str(refresh),

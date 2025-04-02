@@ -9,6 +9,7 @@ from .views import (
     ResetPasswordConfirmView,
     ResetPasswordRequestView,
     SelectRoleView,
+    SetRoleView,
     SignupView,
     VerifyEmailView,
 )
@@ -18,6 +19,7 @@ urlpatterns = [
     path('login/', CustomTokenObtainPairView.as_view(), name='regular-login'),
     path('login/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
     path('select-role/', SelectRoleView.as_view(), name='select_role'),
+    path('set-role/', SetRoleView.as_view(), name='set_roles'),
     path('signup/', SignupView.as_view(), name='signup'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path("resend-verication-email/", ResendVerificationEmailView.as_view(), name="resend-verification-email"),

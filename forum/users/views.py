@@ -22,6 +22,7 @@ from .models import User
 from .serializers import (
     CustomRoleSerializer,
     CustomTokenObtainPairSerializer,
+    SetRoleSerializer,
     UserSerializer,
 )
 from .utils import (
@@ -628,3 +629,60 @@ class SelectRoleView(GenericAPIView):
                 {"error": str(e.detail)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+
+class SetRoleView(GenericAPIView):
+    permission_classes = [IsAuthenticated, ]
+    authentication_classes = [SessionAuthentication]
+    serializer_class = SetRoleSerializer
+
+    @swagger_auto_schema(
+        operation_summary="Set User Roles After Signup",
+        operation_description="Allows a newly registered user to set one or both roles ('investor', 'startup') after OAuth signup.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "roles": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Items(type=openapi.TYPE_STRING, enum=["investor", "startup"]),
+                    description="User's initial roles (one or both)."
+                ),
+            },
+            required=["roles"],
+        ),
+        responses={
+            200: openapi.Response(description="Roles set and tokens issued."),
+            400: openapi.Response(description="Invalid roles."),
+            403: openapi.Response(description="User is banned or inactive."),
+        }
+    )
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data, context={"request": request})
+
+        try:
+            serializer.is_valid(raise_exception=True)
+            data = serializer.validated_data
+
+            access_token = data["access"]
+            refresh_token = data["refresh"]
+
+            response = Response({"message": "Roles set successfully"}, status=status.HTTP_200_OK)
+            response.set_cookie(
+                key=settings.SIMPLE_JWT["AUTH_COOKIE"],
+                value=access_token,
+                httponly=settings.SIMPLE_JWT["AUTH_COOKIE_HTTP_ONLY"],
+                secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
+                samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"]
+            )
+            response.set_cookie(
+                key=settings.SIMPLE_JWT["AUTH_COOKIE_REFRESH"],
+                value=refresh_token,
+                httponly=settings.SIMPLE_JWT["AUTH_COOKIE_HTTP_ONLY"],
+                secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
+                samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"]
+            )
+
+            return response
+
+        except serializers.ValidationError as e:
+            return Response({"error": str(e.detail)}, status=status.HTTP_400_BAD_REQUEST)
