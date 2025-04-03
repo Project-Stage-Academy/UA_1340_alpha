@@ -1,6 +1,7 @@
 from django.core.management import BaseCommand
-from elasticsearch.helpers import bulk
 from elasticsearch import Elasticsearch
+from elasticsearch.helpers import bulk
+
 from projects.models import Project
 
 

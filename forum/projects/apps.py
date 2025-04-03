@@ -1,5 +1,6 @@
 from django.apps import AppConfig
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_delete, post_save
+
 
 class ProjectsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
@@ -14,12 +15,11 @@ class ProjectsConfig(AppConfig):
         registered and ready to handle signals.
         """
         import projects.signals
-
         from .signals import (  # Import your signals module
             celery_project_update,
-            websocket_project_update,
+            delete_project_document,
             update_project_document,
-            delete_project_document
+            websocket_project_update,
         )
         post_save.connect(celery_project_update, sender='projects.Project')
         post_save.connect(websocket_project_update, sender='projects.Project')
