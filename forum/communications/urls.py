@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import CreateConversationApiView, SendMessageApiView, ListMessagesApiView
+
+from .views import CreateConversationApiView, ListMessagesApiView, SendMessageApiView
 
 urlpatterns = [
     path('conversations/', CreateConversationApiView.as_view(), name='create_conversation'),
