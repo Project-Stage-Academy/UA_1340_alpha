@@ -12,7 +12,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.room_id = self.scope["url_route"]["kwargs"]["room_id"]
         self.room_group_name = f"chat_{self.room_id}"
 
-        self.room = await sync_to_async(Room.objects.filter(id=self.room_id).first)()
+        self.room = await sync_to_async(Room.objects.aget, thread_sensitive=True)(id=self.room_id)
         if not self.room:
             self.room = Room(id=self.room_id, participants=[])
             await sync_to_async(self.room.save)()
@@ -41,6 +41,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             try:
                 if sender_email not in self.room.participants:
                     self.room.add_participant(sender_email)
+                    await sync_to_async(self.room.save, thread_sensitive=True)()
 
                 new_message = Message(
                     room=self.room,

@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from django.contrib.sitemaps.views import index
 from django.db import models
 from mongoengine import (
     DateTimeField,
@@ -33,7 +34,7 @@ class Communication(models.Model):
 
 
 class Room(Document):
-    participants = ListField(EmailField(required=True), required=True)  # Зберігаємо email учасників
+    participants = ListField(EmailField(required=True), required=True)
     created_at = DateTimeField(default=datetime.now)
     updated_at = DateTimeField(default=datetime.now)
 
