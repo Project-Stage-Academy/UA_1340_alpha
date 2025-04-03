@@ -168,7 +168,6 @@ class VerifyEmailViewTests(APITestCase):
         valid_token = AccessToken.for_user(user)
 
         response = self.client.get(self.url, {'token': str(valid_token)})
-        print(response)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['message'], "Email verified successfully")
 
@@ -181,7 +180,6 @@ class VerifyEmailViewTests(APITestCase):
 
         with patch("jwt.decode", return_value={"user_id": 999999}):
             response = self.client.get(self.url, {'token': valid_token})
-            print(response)
             self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
             self.assertEqual(response.data['error'], "User not found")
 
@@ -191,7 +189,6 @@ class VerifyEmailViewTests(APITestCase):
         with patch("jwt.decode", return_value={"user_id": 1}), \
                 patch('users.models.User.objects.get', side_effect=Exception("Unexpected error")):
             response = self.client.get(self.url, {'token': valid_token})
-            print(response)
             self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
             self.assertEqual(response.data['error'], "Unexpected error occurred")
 
@@ -201,7 +198,6 @@ class VerifyEmailViewTests(APITestCase):
         with patch("jwt.decode", return_value={"user_id": 1}), \
                 patch('users.models.User.objects.get', side_effect=DatabaseError("Database connection failed")):
             response = self.client.get(self.url, {'token': valid_token})
-            print(response)
             self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
             self.assertEqual(response.data['error'], "Database error occurred")
 
@@ -288,7 +284,7 @@ class TestPasswordUtils(unittest.TestCase):
             '<p>Click <a href="http://example.com/reset-password">here</a> to reset your password.</p>'
             )
 
-    @patch('users.utils.send_email_task.delay')
+    @patch('users.utils.send_email_task_no_ssl.delay')
     @patch('users.utils.RefreshToken.for_user')
     def test_send_verification_email(self, mock_refresh_token, mock_send_email):
 

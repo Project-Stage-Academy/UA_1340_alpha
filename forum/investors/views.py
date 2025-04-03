@@ -1,9 +1,12 @@
 import logging
+from decimal import Decimal
 
+from django.db import IntegrityError, transaction
 from django.db.models import Sum
+from django.utils import timezone
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import permissions, status
+from rest_framework import generics, permissions, status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
@@ -12,11 +15,13 @@ from rest_framework.views import APIView
 
 from startups.models import StartupProfile
 from startups.serializers import StartupProfileSerializer
+from users.permissions import IsInvestor
 from .models import (
     InvestorPreferredIndustry,
     InvestorProfile,
     InvestorSavedStartup,
     InvestorTrackedProject,
+    ViewedStartup,
 )
 from .serializers import (
     CreateInvestorPreferredIndustrySerializer,
@@ -25,9 +30,9 @@ from .serializers import (
     CreateInvestorTrackedProjectSerializer,
     InvestorPreferredIndustrySerializer,
     InvestorProfileSerializer,
-    InvestorSavedStartupSerializer,
     InvestorTrackedProjectSerializer,
     SubscriptionSerializer,
+    ViewedStartupSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -568,13 +573,15 @@ class SavedStartupsApiView(APIView):
 
             search_field = request.query_params.get('search_field', 'company_name')  # Default to 'name'
             search_term = request.query_params.get('search', None)
+            if not hasattr(StartupProfile, search_field):
+                search_term = None
 
             if search_term:
                 filter_kwargs = {f"{search_field}__icontains": search_term}
                 saved_startups = saved_startups.filter(**filter_kwargs)
 
             sort_field = request.query_params.get('sort', None)
-            if sort_field:
+            if sort_field and hasattr(StartupProfile, sort_field):
                 saved_startups = saved_startups.order_by(sort_field)
 
             serializer = StartupProfileSerializer(saved_startups, many=True)
@@ -750,64 +757,168 @@ class SubscriptionCreateView(APIView):
     - Ensures that total funding does not exceed 100%.
     - Returns the remaining available funding after subscription.
     """
-    permission_classes = [permissions.IsAuthenticated]
+
+    permission_classes = [permissions.IsAuthenticated, IsInvestor]
 
     @swagger_auto_schema(
         request_body=SubscriptionSerializer,
         responses={
             201: openapi.Response(
                 description="Subscription successful",
-                examples={
-                    "application/json": {
-                        "message": "Subscription successful.",
-                        "remaining_funding": 50
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "message": openapi.Schema(type=openapi.TYPE_STRING, example="Subscription successful."),
+                        "remaining_funding": openapi.Schema(type=openapi.TYPE_NUMBER, format=openapi.FORMAT_DECIMAL,
+                                                            example=50)
                     }
-                }
+                )
             ),
-            400: "Invalid input or exceeding funding limit",
-            403: "User is not an investor"
+            400: openapi.Response(
+                description="Invalid input or exceeding funding limit",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "error": openapi.Schema(type=openapi.TYPE_STRING,
+                                                example="Duplicate subscription entry, already exists.")
+                    }
+                )
+            ),
+            403: openapi.Response(
+                description="User is not an investor",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "detail": openapi.Schema(type=openapi.TYPE_STRING,
+                                                 example="You must be an investor to subscribe to a project.")
+                    }
+                )
+            )
         }
     )
     def post(self, request):
-        """
-        Validates and creates an investor subscription.
-
-        - Ensures the user has an investor profile.
-        - Checks if the total funding exceeds 100% before saving.
-        - Returns a response indicating the remaining funding.
-        """
         user = request.user
         serializer = SubscriptionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Ensure the user has an investor profile
         try:
             investor = InvestorProfile.objects.get(user=user)
         except InvestorProfile.DoesNotExist:
             raise PermissionDenied("You must be an investor to subscribe to a project.")
 
-        # Get the project and investment share
         project = serializer.validated_data['project']
-        new_share = serializer.validated_data['investment_share']
+        new_share = serializer.validated_data['share']
 
-        # Calculate the total current investment share
-        total_current_share = InvestorTrackedProject.objects.filter(project=project).aggregate(
-            total=Sum('share')
-        )['total'] or 0
+        try:
+            with transaction.atomic():
+                # Calculate current share BEFORE creating subscription
+                total_current_share = Decimal(
+                    InvestorTrackedProject.objects.filter(project=project).aggregate(
+                        total_investment=Sum('share')
+                    )['total_investment'] or 0
+                ).quantize(Decimal('0.00'))
 
-        # Validate that the new share does not exceed 100%
-        if total_current_share + new_share > 100:
-            raise ValidationError(
-                {"investment_share": "Project is fully funded or the investment exceeds the allowed share."}
+                if total_current_share + new_share > 100:
+                    raise ValidationError({
+                        "investment_share": "Project is fully funded or the investment exceeds the allowed share."
+                    })
+
+                # Create subscription atomically with funding check
+                subscription, created = InvestorTrackedProject.objects.get_or_create(
+                    investor=investor,
+                    project=project,
+                    defaults={'share': new_share}
+                )
+
+                if not created:
+                    return Response(
+                        {"error": "This investor is already tracking this project."},
+                        status=400
+                    )
+
+                remaining_funding = 100 - (total_current_share + new_share)
+
+            return Response({
+                "message": "Subscription successful.",
+                "remaining_funding": remaining_funding
+            }, status=201)
+
+        except IntegrityError as e:
+            logger.error(f"Subscription integrity error: {str(e)}")
+            return Response({"error": "Subscription conflict occurred."}, status=400)
+
+
+class RecentlyViewedStartupsView(generics.ListAPIView):
+    """
+    API endpoint to retrieve recently viewed startups by an investor.
+    """
+    serializer_class = ViewedStartupSerializer
+    permission_classes = [IsAuthenticated, IsInvestor]
+
+    def get_queryset(self):
+        return ViewedStartup.objects.filter(user=self.request.user).order_by('-viewed_at')
+
+
+class LogStartupView(APIView):
+    """
+    API endpoint to save a startup viewed by an investor in database.
+    """
+    permission_classes = [IsAuthenticated, IsInvestor]
+
+    @swagger_auto_schema(
+        responses={
+            200: "Startup view saved successfully",
+            403: "User is not an investor",
+            404: "Startup not found",
+        }
+    )
+    def post(self, request, startup_id):
+        """
+        Logs a startup viewed by an investor.
+
+        :param request:
+        :param startup_id:
+        :return:
+        """
+        startup = StartupProfile.objects.filter(id=startup_id).first()
+        if not startup:
+            return Response(
+                {"error": "Startup not found"},
+                status=status.HTTP_404_NOT_FOUND
             )
 
-        # Save the subscription
-        serializer.save(investor=investor, share=new_share)
+        ViewedStartup.objects.update_or_create(
+            user=request.user,
+            startup=startup,
+            defaults={"viewed_at": timezone.now()}
+        )
+        return Response(
+            {"message": "Startup view saved successfully."},
+            status=status.HTTP_200_OK
+        )
 
-        # Calculate remaining funding
-        remaining_funding = 100 - (total_current_share + new_share)
+class ClearViewedStartups(APIView):
+    """
+    API endpoint to clear recently viewed startups by an investor.
+    """
+    permission_classes = [IsAuthenticated, IsInvestor]
 
-        return Response({
-            "message": "Subscription successful.",
-            "remaining_funding": remaining_funding
-        }, status=201)
+    @swagger_auto_schema(
+        responses={
+            200: "Recently viewed startups cleared successfully",
+            403: "User is not an investor",
+        }
+    )
+    def delete(self, request):
+        deleted_count, _ = ViewedStartup.objects.filter(user=request.user).delete()
+
+        if deleted_count == 0:
+            return Response(
+                {"error": "No recently viewed startups."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        return Response(
+            {"message": "Recently viewed startups cleared successfully."},
+            status=status.HTTP_200_OK
+        )

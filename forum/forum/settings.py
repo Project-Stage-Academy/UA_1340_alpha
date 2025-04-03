@@ -12,9 +12,11 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import logging
 import logging.handlers
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 
+import mongoengine
 from django.urls import reverse_lazy
 from dotenv import load_dotenv
 
@@ -100,6 +102,8 @@ LOGGING = {
     },
 }
 
+if "test" in sys.argv:
+    logging.disable(logging.ERROR)
 
 # Application definition
 
@@ -166,6 +170,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'forum.wsgi.application'
 ASGI_APPLICATION = 'forum.asgi.application'
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer", # Redis I will add later
+    },
+}
+
+
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
@@ -183,6 +194,15 @@ DATABASES = {
         'PORT': os.environ.get('POSTGRES_PORT')
     },
 }
+
+# Added MongoDB
+MONGO_DB = os.environ.get("MONGO_DATABASE")
+mongoengine.connect(
+    db=MONGO_DB,
+    host=os.environ.get("MONGO_URL")
+)
+
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -358,5 +378,3 @@ DEFAULT_FILE_STORAGE = 'forum.storages.MediaStorage'
 # Media files URL
 MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/'
 
-# set UTF-8 as default encoding
-DEFAULT_CHARSET = 'utf-8'
