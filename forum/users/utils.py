@@ -1,10 +1,12 @@
 import logging
+from datetime import datetime
 from urllib.parse import urlencode
 
 from celery.exceptions import CeleryError
 from django.contrib.auth.tokens import default_token_generator
+from django.http import HttpRequest
 from django.template.loader import render_to_string
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -86,6 +88,59 @@ def send_verification_email(user, request) -> bool:
         return False
     except Exception as e:
         logger.error(f"Failed to send verification email: {e}")
+        return False
+    
+
+def send_welcome_email(user, request: HttpRequest) -> bool:
+    """
+    Sends a welcome email to the user after successful registration or login using a template.
+    
+    Args:
+        user: The User instance (custom User model).
+        request: The HTTP request object to build absolute URLs.
+    
+    Returns:
+        bool: True if the email task was successfully queued, False otherwise.
+    """
+    try:
+        token = RefreshToken.for_user(user)
+
+        welcome_url = request.build_absolute_uri(reverse('dashboard'))
+        verification_url = request.build_absolute_uri(
+            f"{reverse('verify-email')}?{urlencode({'token': str(token)})}"
+        ) if user.is_email_confirmed is False else None
+
+        context = {
+            'user_email': user.email,
+            'welcome_url': welcome_url,
+            'verification_url': verification_url,
+            'current_year': datetime.now().year,
+        }
+
+        html_message = render_to_string('welcome_email.html', context)
+
+        message = (
+            f"Hello {user.email},\n\n"
+            "Thank you for joining our platform!\n"
+            f"You can access your dashboard here: {welcome_url}\n"
+        )
+        if verification_url:
+            message += f"\nPlease verify your email by clicking here: {verification_url}"
+
+        subject = "Welcome to Our Platform!"
+
+        send_email_task.delay(subject, message, [user.email], html_message)
+        logger.info(f"Welcome email task queued for {user.email}")
+        return True
+
+    except NoReverseMatch as nre:
+        logger.error(f"Failed to build URL for welcome email: {nre}")
+        return False
+    except CeleryError as ce:
+        logger.error(f"Failed to queue welcome email task: {ce}")
+        return False
+    except Exception as e:
+        logger.error(f"Failed to send welcome email: {e}")
         return False
     
 

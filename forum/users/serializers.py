@@ -187,7 +187,6 @@ class SetRoleSerializer(serializers.Serializer):
             raise serializers.ValidationError({"error": "No social login data found. Please start signup again."})
 
         sociallogin = SocialLogin.deserialize(sociallogin_data)
-        from allauth.socialaccount.helpers import complete_social_login
         complete_social_login(request, sociallogin)
 
         user = sociallogin.user

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Our Platform</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .button:hover {
+            background-color: #2980b9;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #777;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 class="header">Welcome to Our Platform!</h2>
+        <p>Hello <strong>{{ user_email }}</strong>,</p>
+        <p>Thank you for joining our platform! We're excited to have you on board.</p>
+        <p>
+            You can access your dashboard here:
+            <a href="{{ welcome_url }}" class="button">Go to Dashboard</a>
+        </p>
+        {% if verification_url %}
+        <p>
+            Please verify your email by clicking the link below:
+            <a href="{{ verification_url }}" class="button">Verify Your Email</a>
+        </p>
+        {% endif %}
+        <p>If you have any questions, feel free to reach out to our support team.</p>
+        <div class="footer">
+            &copy; {{ current_year }} Your Platform Name. All rights reserved.
+        </div>
+    </div>
+</body>
+</html>
