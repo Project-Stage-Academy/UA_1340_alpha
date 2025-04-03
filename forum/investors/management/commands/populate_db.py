@@ -32,7 +32,7 @@ class Command(BaseCommand):
         users = [
             User(
                 email=fake.email(),
-                password=make_password("password123"),
+                password=make_password("Password123#"),
                 first_name=fake.first_name(),
                 last_name=fake.last_name(),
                 is_investor=random.choice([True, False]),
