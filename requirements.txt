@@ -33,6 +33,7 @@ inflection==0.5.1
 isort==5.13.2
 jmespath==1.0.1
 kombu==5.4.2
+mongoengine==0.29.1
 mccabe==0.7.0
 oauthlib==3.2.2
 packaging==24.2
