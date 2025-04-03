@@ -15,13 +15,9 @@ class ProjectsConfig(AppConfig):
         registered and ready to handle signals.
         """
         import projects.signals
-        from .signals import (  # Import your signals module
-            celery_project_update,
+        from .signals import (
+            combined_project_update,
             delete_project_document,
-            update_project_document,
-            websocket_project_update,
         )
-        post_save.connect(celery_project_update, sender='projects.Project')
-        post_save.connect(websocket_project_update, sender='projects.Project')
-        post_save.connect(update_project_document, sender='projects.Project')
+        post_save.connect(combined_project_update, sender='projects.Project')
         post_delete.connect(delete_project_document, sender='projects.Project')

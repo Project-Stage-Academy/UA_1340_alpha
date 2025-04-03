@@ -9,36 +9,14 @@ from .tasks import send_project_update
 
 
 @receiver(post_save, sender=Project)
-def celery_project_update(sender, instance, created, **kwargs):
+def combined_project_update(sender, instance, created, **kwargs):
     """
-    Sends an asynchronous update notification when a Project is created or updated.
+    Combined signal handler for project updates.
 
-    This function is triggered automatically whenever a Project instance is saved. It sends
-    an asynchronous task to notify interested parties about the updated or newly created project
-    using the `send_project_update` Celery task. The task sends information such as the project's
-    ID, title, and description.
-
-    Args:
-        sender (Model class): The model class (Project) that triggered this signal.
-        instance (Project): The specific instance of the Project model that was saved.
-        created (bool): A boolean indicating if the instance was created (True) or updated (False).
-        **kwargs: Additional keyword arguments passed by the signal.
-    """
-    send_project_update.delay(
-        str(instance.id),
-        instance.title,
-        instance.description
-    )
-
-
-@receiver(post_save, sender=Project)
-def websocket_project_update(sender, instance, created, **kwargs):
-    """
-    Signal receiver for project updates.
-
-    This function is triggered after a Project instance is saved. It sends
-    an update message to the corresponding WebSocket group, notifying
-    connected clients of the project's latest details.
+    This function is triggered after a Project instance is saved. It performs the following actions:
+    - Sends an asynchronous update notification using Celery.
+    - Sends an update message to the corresponding WebSocket group.
+    - Updates the Elasticsearch document for the Project model.
 
     Args:
         sender (Model): The model class that sent the signal.
@@ -46,6 +24,14 @@ def websocket_project_update(sender, instance, created, **kwargs):
         created (bool): A flag indicating whether a new instance was created.
         **kwargs: Additional keyword arguments passed to the receiver.
     """
+    # Celery update
+    send_project_update.delay(
+        str(instance.id),
+        instance.title,
+        instance.description
+    )
+
+    # WebSocket update
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         f'project_{instance.id}',
@@ -59,17 +45,7 @@ def websocket_project_update(sender, instance, created, **kwargs):
         }
     )
 
-
-@receiver(post_save, sender=Project)
-def update_project_document(sender, instance, **kwargs):
-    """
-    Signal to update the Elasticsearch document for the Project model when an instance is saved.
-
-    Args:
-        sender: The model class.
-        instance: The instance being saved.
-        kwargs: Additional keyword arguments.
-    """
+    # Elasticsearch document update
     ProjectDocument().save(instance)
 
 
@@ -83,4 +59,4 @@ def delete_project_document(sender, instance, **kwargs):
         instance: The instance being deleted.
         kwargs: Additional keyword arguments.
     """
-    ProjectDocument().delete(instance)
+    ProjectDocument().delete(instance, ignore=404)
