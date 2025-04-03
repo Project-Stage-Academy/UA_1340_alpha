@@ -684,4 +684,4 @@ class SetRoleView(GenericAPIView):
             return response
 
         except ValidationError as e:
-            return Response({"error": str(e.detail)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
