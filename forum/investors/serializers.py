@@ -130,7 +130,7 @@ class CreateInvestorTrackedProjectSerializer(serializers.ModelSerializer):
 class SubscriptionSerializer(serializers.ModelSerializer):
     investor = serializers.PrimaryKeyRelatedField(queryset=InvestorProfile.objects.all())
     project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
-    investment_share = serializers.DecimalField(
+    share = serializers.DecimalField(
         max_digits=5,
         decimal_places=2,
         min_value=0,
@@ -140,22 +140,22 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = InvestorTrackedProject
-        fields = ['investor', 'project', 'investment_share', 'created_at']
+        fields = ['investor', 'project', 'share', 'created_at']
         read_only_fields = ['created_at']
 
     def validate(self, data):
         project = data['project']
-        new_share = data['investment_share']
+        new_share = data['share']
 
         # Get the total current investment for the project
         total_current_share = InvestorTrackedProject.objects.filter(project=project).aggregate(
-            total_investment=Sum('investment_share')
+            total_investment=Sum('share')
         )['total_investment'] or 0
 
         # Ensure new subscription does not exceed 100% funding
         if total_current_share + new_share > 100:
             raise serializers.ValidationError(
-                {"investment_share": "Project is fully funded. No further subscriptions allowed."}
+                {"share": "Project is fully funded. No further subscriptions allowed."}
             )
 
         return data
