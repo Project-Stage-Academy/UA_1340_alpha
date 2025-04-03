@@ -6,21 +6,18 @@ class IsInvestor(BasePermission):
     """
     Allows access only to users with the 'investor' role.
     """
+    message = "You must be an investor to access this resource."
 
     def has_permission(self, request, view):
-        auth = JWTAuthentication()
-        user_token = auth.get_validated_token(request.headers.get('Authorization', '').split('Bearer ')[-1])
-
-        return user_token.get("role") == "investor"
-
+        user = request.user
+        return bool(user and user.is_authenticated and user.is_investor)
 
 class IsStartup(BasePermission):
     """
     Allows access only to users with the 'startup' role.
     """
+    message = "You must be a startup to access this resource."
 
     def has_permission(self, request, view):
-        auth = JWTAuthentication()
-        user_token = auth.get_validated_token(request.headers.get('Authorization', '').split('Bearer ')[-1])
-
-        return user_token.get("role") == "startup"
+        user = request.user
+        return bool(user and user.is_authenticated and user.is_startup)

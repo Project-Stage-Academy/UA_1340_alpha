@@ -1,7 +1,7 @@
 from allauth.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.http import HttpResponseRedirect
-from django.urls import reverse, Resolver404
+from django.urls import Resolver404, reverse
 
 
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
@@ -12,7 +12,7 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         try:
             reverse('set_roles')  
         except Resolver404:
-            raise ImmediateHttpResponse(HttpResponseRedirect(reverse('home')))  
+            raise ImmediateHttpResponse(HttpResponseRedirect(reverse('project-list-create')))  
         raise ImmediateHttpResponse(HttpResponseRedirect(reverse('set_roles')))
 
     def save_user(self, request, sociallogin, form=None):

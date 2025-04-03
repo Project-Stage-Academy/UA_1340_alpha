@@ -79,10 +79,8 @@ class TestEmailTasks(unittest.TestCase):
         subject = "Test Subject"
         message = "Test Message"
         
-        with self.assertLogs(logger, level="ERROR") as log:
-            send_email_task(subject, message, recipient_list)
-        
-        self.assertIn("Failed to send email", log.output[0])
+        result = send_email_task(subject, message, recipient_list)
+        self.assertFalse(result)
 
 if __name__ == "__main__":
     unittest.main()

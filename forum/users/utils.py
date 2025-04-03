@@ -13,7 +13,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from forum.tasks import send_email_task, send_email_task_no_ssl
+from forum.tasks import send_email_task_no_ssl
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ def send_verification_email(user, request) -> bool:
         message = f"Click the link to verify your email: {verification_url}"
         html_message = f"<p>Click <a href='{verification_url}'>here</a> to verify your email.</p>"
 
-        send_email_task.delay(subject, message, [user.email], html_message)
+        send_email_task_no_ssl.delay(subject, message, [user.email], html_message)
         return True
 
     except CeleryError as ce:

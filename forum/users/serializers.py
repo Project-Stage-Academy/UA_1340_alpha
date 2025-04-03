@@ -99,8 +99,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         data = super().validate(attrs)
-        assert isinstance(self.user, User)
         user = self.user
+        if not isinstance(user, User):
+            raise ValidationError({"error": "Failed to retrieve user from data."})
         selected_role = self.context["request"].data.get("role")
 
         if selected_role not in ["startup", "investor"]:
@@ -122,8 +123,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             raise ValidationError({"status": "Your account is inactive. Please contact support."})
 
         refresh = RefreshToken.for_user(user)
-        refresh.payload["email"] = user.email
-        refresh.payload["role"] = selected_role
+        refresh["email"] = user.email
+        refresh["role"] = selected_role
 
         data["refresh"] = str(refresh)
         data["access"] = str(refresh.access_token)
@@ -136,7 +137,8 @@ class CustomRoleSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         user = self.context["request"].user
-        assert isinstance(user, User)
+        if not isinstance(user, User):
+            raise ValidationError({"error": "Failed to retrieve user from social login data."})
         selected_role = attrs.get("role")
 
         if selected_role not in ["startup", "investor"]:
@@ -157,10 +159,9 @@ class CustomRoleSerializer(serializers.Serializer):
         if not user.is_active:
             raise serializers.ValidationError({"status": "Your account is inactive."})
 
-        # Генерація токенів
         refresh = RefreshToken.for_user(user)
-        refresh.payload["email"] = user.email
-        refresh.payload["role"] = selected_role
+        refresh["email"] = user.email
+        refresh["role"] = selected_role
 
         return {
             "refresh": str(refresh),
@@ -213,8 +214,8 @@ class SetRoleSerializer(serializers.Serializer):
         primary_role = list(selected_roles)[0]
 
         refresh = RefreshToken.for_user(user)
-        refresh.payload["email"] = user.email
-        refresh.payload["role"] = primary_role
+        refresh["email"] = user.email
+        refresh["role"] = primary_role
 
         return {
             "refresh": str(refresh),
