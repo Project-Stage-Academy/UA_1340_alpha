@@ -6,62 +6,97 @@
     <title>Welcome to Our Platform</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4; 
+            width: 100%;
+            text-align: center; 
         }
         .container {
-            background-color: #f9f9f9;
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff; 
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center; 
         }
         .header {
-            text-align: center;
+            color: #2c3e50;
+            font-size: 24px;
+            margin: 0 0 20px;
+        }
+        p {
+            margin: 0 0 15px;
+            font-size: 16px;
+        }
+        strong {
             color: #2c3e50;
         }
         .button {
             display: inline-block;
-            padding: 10px 20px;
-            background-color: #3498db;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            margin-top: 10px;
+            padding: 12px 25px; 
+            background-color: #3498db; 
+            color: #ffffff !important; 
+            text-decoration: none !important; 
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            border: 2px solid #2980b9; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
+            margin: 10px 0;
         }
         .button:hover {
-            background-color: #2980b9;
+            background-color: #2980b9; 
+            color: #ffffff !important; 
         }
         .footer {
             margin-top: 20px;
             font-size: 12px;
-            color: #777;
+            color: #777777;
             text-align: center;
+        }
+        @media only screen and (max-width: 600px) {
+            .container {
+                width: 100%;
+                padding: 15px;
+            }
+            .button {
+                width: 80%; 
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2 class="header">Welcome to Our Platform!</h2>
-        <p>Hello <strong>{{ user_email }}</strong>,</p>
-        <p>Thank you for joining our platform! We're excited to have you on board.</p>
-        <p>
-            You can access your dashboard here:
-            <a href="{{ welcome_url }}" class="button">Go to Dashboard</a>
-        </p>
-        {% if verification_url %}
-        <p>
-            Please verify your email by clicking the link below:
-            <a href="{{ verification_url }}" class="button">Verify Your Email</a>
-        </p>
-        {% endif %}
-        <p>If you have any questions, feel free to reach out to our support team.</p>
-        <div class="footer">
-            &copy; {{ current_year }} Your Platform Name. All rights reserved.
-        </div>
-    </div>
+    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+            <td align="center">
+                <div class="container">
+                    <h2 class="header">Welcome to Our Platform!</h2>
+                    <p>Hello <strong>{{ user_email }}</strong>,</p>
+                    <p>Thank you for joining our platform! We're excited to have you on board.</p>
+                    <p>
+                        You can return to the main page here:<br>
+                        <a href="{{ welcome_url }}" class="button">Go to Main Page</a>
+                    </p>
+                    {% if verification_url %}
+                    <p>
+                        Please verify your email by clicking the link below:<br>
+                        <a href="{{ verification_url }}" class="button">Verify Your Email</a>
+                    </p>
+                    {% endif %}
+                    <p>If you have any questions, feel free to reach out to our support team.</p>
+                    <div class="footer">
+                        © {{ current_year }} Your Platform Name. All rights reserved.
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

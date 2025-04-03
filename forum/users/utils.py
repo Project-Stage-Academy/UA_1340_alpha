@@ -105,7 +105,7 @@ def send_welcome_email(user, request: HttpRequest) -> bool:
     try:
         token = RefreshToken.for_user(user)
 
-        welcome_url = request.build_absolute_uri(reverse('dashboard'))
+        welcome_url = request.build_absolute_uri(reverse('schema-swagger-ui'))
         verification_url = request.build_absolute_uri(
             f"{reverse('verify-email')}?{urlencode({'token': str(token)})}"
         ) if user.is_email_confirmed is False else None
@@ -117,7 +117,7 @@ def send_welcome_email(user, request: HttpRequest) -> bool:
             'current_year': datetime.now().year,
         }
 
-        html_message = render_to_string('welcome_email.html', context)
+        html_message = render_to_string('emails/welcome_email.html', context)
 
         message = (
             f"Hello {user.email},\n\n"

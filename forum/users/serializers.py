@@ -208,6 +208,7 @@ class SetRoleSerializer(serializers.Serializer):
             raise serializers.ValidationError({"status": "Your account is inactive."})
 
         user.save()
+        self.user = user
 
         primary_role = list(selected_roles)[0]
 
