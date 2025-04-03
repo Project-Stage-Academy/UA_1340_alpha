@@ -87,6 +87,7 @@ services:
     volumes:
       - .:/usr/src
     depends_on:
+      - db
       - redis
       - api
     environment:

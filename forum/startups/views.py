@@ -6,6 +6,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from forum.tasks import save_viewed_startup
+from investors.models import ViewedStartup
 from .models import StartupProfile
 from .serializers import CreateStartupProfileSerializer, StartupProfileSerializer
 
@@ -98,15 +100,6 @@ class StartupProfileDetailAPIView(APIView):
         operation_summary="Retrieve a specific startup",
         operation_description="Retrieve the details of a specific startup profile by its ID.",
         tags=["Startups"],
-        manual_parameters=[
-            openapi.Parameter(
-                'pk',
-                openapi.IN_PATH,
-                description="ID of the startup profile",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            )
-        ],
         responses={
             200: StartupProfileSerializer,
             404: "Startup not found."
@@ -126,6 +119,9 @@ class StartupProfileDetailAPIView(APIView):
         startup = self.get_object(pk)
         if startup is None:
             return Response({"error": "Startup not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        save_viewed_startup(request.user, startup)
+
         serializer = StartupProfileSerializer(startup)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -133,15 +129,6 @@ class StartupProfileDetailAPIView(APIView):
         operation_summary="Update a startup profile",
         operation_description="Update the details of a startup profile by its ID.",
         tags=["Startups"],
-        manual_parameters=[
-            openapi.Parameter(
-                'pk',
-                openapi.IN_PATH,
-                description="ID of the startup profile",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            )
-        ],
         request_body=CreateStartupProfileSerializer,
         responses={
             200: StartupProfileSerializer,
