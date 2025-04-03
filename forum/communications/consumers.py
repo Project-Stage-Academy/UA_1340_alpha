@@ -34,6 +34,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
+        print(f'DATA: {data}')
+        print(f'SCOPE: {self.scope}')
+        print(f'User: {self.scope["user"]}')
+
         message_text = data.get("message")
         sender_email = data.get("sender")
 
