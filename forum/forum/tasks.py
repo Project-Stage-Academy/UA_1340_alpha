@@ -84,9 +84,10 @@ def send_email_task(subject: str, message: str, recipient_list: List[str], html_
             html_message=html_message
         )
         logger.info(f"Email sent successfully to {recipient_list}")
+        return True
     except Exception as e:
         logger.error(f"Failed to send email to {recipient_list}: {e}")
-
+        return False
 
 @shared_task
 def save_viewed_startup(user: User, startup: StartupProfile):

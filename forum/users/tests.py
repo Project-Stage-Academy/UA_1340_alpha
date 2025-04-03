@@ -284,7 +284,7 @@ class TestPasswordUtils(unittest.TestCase):
             '<p>Click <a href="http://example.com/reset-password">here</a> to reset your password.</p>'
             )
 
-    @patch('users.utils.send_email_task.delay')
+    @patch('users.utils.send_email_task_no_ssl.delay')
     @patch('users.utils.RefreshToken.for_user')
     def test_send_verification_email(self, mock_refresh_token, mock_send_email):
 
