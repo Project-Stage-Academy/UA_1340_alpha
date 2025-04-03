@@ -5,8 +5,7 @@ services:
     restart: always
     command: sh -c "sleep 5 && pylint forum/forum || true &&
                     python forum/manage.py migrate &&
-                    python forum/manage.py search_index --create &&
-                    python forum/manage.py search_index --populate &&
+                    python forum/manage.py bulk_index_projects &&
                     python forum/manage.py collectstatic --noinput &&
                     python forum/manage.py runserver 0.0.0.0:8000"
     volumes:
