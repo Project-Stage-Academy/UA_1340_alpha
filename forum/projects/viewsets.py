@@ -11,7 +11,7 @@ from .serializers import ProjectSearchSerializer
 
 
 class ProjectSearchView(APIView, PageNumberPagination):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     document = ProjectDocument
     serializer_class = ProjectSearchSerializer
     page_size = 10
