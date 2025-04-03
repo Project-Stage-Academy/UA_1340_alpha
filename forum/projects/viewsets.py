@@ -6,15 +6,18 @@ from rest_framework.pagination import PageNumberPagination
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from elasticsearch_dsl import Q
+from django.db.models import Case, When
+
 from .documents import ProjectDocument
 from .serializers import ProjectSearchSerializer
+from .models import Project
 
 
 class ProjectSearchView(APIView, PageNumberPagination):
     permission_classes = [IsAuthenticated]
-    document = ProjectDocument
     serializer_class = ProjectSearchSerializer
     page_size = 10
+    document = ProjectDocument
 
     @swagger_auto_schema(
         manual_parameters=[
@@ -31,10 +34,10 @@ class ProjectSearchView(APIView, PageNumberPagination):
             query = request.GET.get('q', '')
             status_filter = request.GET.get('status', None)
 
-            # Base search query
+            # Build Elasticsearch query
             search = self.document.search()
 
-            # Multi-match query with fuzziness
+            # Multi-match with fuzziness for search
             if query:
                 search = search.query(
                     Q('multi_match',
@@ -43,14 +46,28 @@ class ProjectSearchView(APIView, PageNumberPagination):
                       fuzziness='AUTO')
                 )
 
-            # Status filter
+            # Apply status filter
             if status_filter:
                 search = search.filter('term', status=status_filter.lower())
 
-            # Execute search and paginate
+            # Execute search and get ordered IDs
             response = search.execute()
-            results = self.paginate_queryset(response, request, view=self)
-            serializer = self.serializer_class(results, many=True)
+            project_ids = [hit.meta.id for hit in response]
+
+            # Preserve Elasticsearch ordering using Case/When
+            preserved_order = Case(
+                *[When(id=id, then=pos) for pos, id in enumerate(project_ids)]
+            )
+
+            # Get actual Django objects with proper ordering
+            queryset = Project.objects.filter(id__in=project_ids) \
+                .order_by(preserved_order) \
+                .select_related('startup')
+
+            # Paginate and serialize
+            paginated_queryset = self.paginate_queryset(queryset, request, view=self)
+            serializer = self.serializer_class(paginated_queryset, many=True)
+
             return self.get_paginated_response(serializer.data)
 
         except Exception as e:
