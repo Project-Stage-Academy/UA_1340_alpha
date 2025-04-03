@@ -1,6 +1,7 @@
 import logging
 
-from django.conf import settings
+from allauth.socialaccount.helpers import complete_social_login
+from allauth.socialaccount.models import SocialLogin
 from django.core.validators import (
     MaxLengthValidator,
     MinLengthValidator,
@@ -8,7 +9,6 @@ from django.core.validators import (
 )
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -99,8 +99,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         data = super().validate(attrs)
-        assert isinstance(self.user, User)
         user = self.user
+        if not isinstance(user, User):
+            raise ValidationError({"error": "Failed to retrieve user from data."})
         selected_role = self.context["request"].data.get("role")
 
         if selected_role not in ["startup", "investor"]:
@@ -122,10 +123,102 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             raise ValidationError({"status": "Your account is inactive. Please contact support."})
 
         refresh = RefreshToken.for_user(user)
-        refresh.payload["email"] = user.email
-        refresh.payload["role"] = selected_role
+        refresh["email"] = user.email
+        refresh["role"] = selected_role
 
         data["refresh"] = str(refresh)
         data["access"] = str(refresh.access_token)
 
         return data
+
+
+class CustomRoleSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(choices=["startup", "investor", ], required=True)
+
+    def validate(self, attrs):
+        user = self.context["request"].user
+        if not isinstance(user, User):
+            raise ValidationError({"error": "Failed to retrieve user from social login data."})
+        selected_role = attrs.get("role")
+
+        if selected_role not in ["startup", "investor"]:
+            raise serializers.ValidationError({"role": "Invalid role. Choose 'startup' or 'investor'."})
+
+        if selected_role == "startup" and not user.is_startup:
+            raise serializers.ValidationError({"role": "You are not registered as a startup."})
+
+        if selected_role == "investor" and not user.is_investor:
+            raise serializers.ValidationError({"role": "You are not registered as an investor."})
+
+        if not user.is_email_confirmed:
+            raise serializers.ValidationError({"email": "Email not verified. Verify your email and try again."})
+
+        if user.status == 'banned':
+            raise serializers.ValidationError({"status": "Your account has been banned."})
+
+        if not user.is_active:
+            raise serializers.ValidationError({"status": "Your account is inactive."})
+
+        refresh = RefreshToken.for_user(user)
+        refresh["email"] = user.email
+        refresh["role"] = selected_role
+
+        return {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token)
+        }
+    
+
+class SetRoleSerializer(serializers.Serializer):
+    roles = serializers.MultipleChoiceField(
+        choices=["startup", "investor"],
+        required=True,
+        help_text="Select one or both roles: 'startup', 'investor'."
+    )
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        selected_roles = attrs.get("roles")
+
+        if not selected_roles:
+            raise serializers.ValidationError({"roles": "At least one role must be selected."})
+
+        sociallogin_data = request.session.get('sociallogin')
+        if not sociallogin_data:
+            raise serializers.ValidationError({"error": "No social login data found. Please start signup again."})
+
+        sociallogin = SocialLogin.deserialize(sociallogin_data)
+        from allauth.socialaccount.helpers import complete_social_login
+        complete_social_login(request, sociallogin)
+
+        user = sociallogin.user
+        if not isinstance(user, User):
+            raise ValidationError({"error": "Failed to create user."})
+
+        if "startup" in selected_roles:
+            user.is_startup = True
+        if "investor" in selected_roles:
+            user.is_investor = True
+
+        if not user.is_email_confirmed:
+            user.is_email_confirmed = True
+
+        if user.status == 'banned':
+            raise serializers.ValidationError({"status": "Your account has been banned."})
+
+        if not user.is_active:
+            raise serializers.ValidationError({"status": "Your account is inactive."})
+
+        user.save()
+
+        primary_role = list(selected_roles)[0]
+
+        refresh = RefreshToken.for_user(user)
+        refresh["email"] = user.email
+        refresh["role"] = primary_role
+
+        return {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token)
+        }
+    

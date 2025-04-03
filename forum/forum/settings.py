@@ -17,6 +17,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import mongoengine
+from django.urls import reverse_lazy
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -146,6 +147,8 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
 ]
 
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
 ROOT_URLCONF = 'forum.urls'
 
 TEMPLATES = [
@@ -233,9 +236,14 @@ SITE_ID = 1
 
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+LOGIN_REDIRECT_URL = reverse_lazy('select_role')
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = "mandatory" 
+ACCOUNT_EMAIL_VERIFICATION = "none" 
+SOCIALACCOUNT_AUTO_SIGNUP = False
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_ADAPTER = 'users.adapters.CustomSocialAccountAdapter'
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
@@ -250,7 +258,11 @@ SOCIALACCOUNT_PROVIDERS = {
             "key": "",
         },
         "SCOPE": ["email", "profile"],
-        "AUTH_PARAMS": {"access_type": "offline"},
+        "AUTH_PARAMS": {
+            "access_type": "offline",
+            "prompt": "select_account"
+            },
+        "VERIFIED_EMAIL": True,
     },
     "github": {
         "APP": {
@@ -259,6 +271,10 @@ SOCIALACCOUNT_PROVIDERS = {
             "key": "",
         },
         "SCOPE": ["user:email"],
+        "AUTH_PARAMS": {
+            "prompt": "select_account"
+            },
+        "VERIFIED_EMAIL": True,
     },
 }
 
