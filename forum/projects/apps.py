@@ -15,9 +15,6 @@ class ProjectsConfig(AppConfig):
         registered and ready to handle signals.
         """
         import projects.signals
-        from .signals import (
-            combined_project_update,
-            delete_project_document,
-        )
+        from .signals import combined_project_update, delete_project_document
         post_save.connect(combined_project_update, sender='projects.Project')
         post_delete.connect(delete_project_document, sender='projects.Project')
