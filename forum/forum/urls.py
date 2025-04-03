@@ -19,9 +19,6 @@ from django.urls import include, path, re_path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
-from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
-
-from users.views import CustomTokenObtainPairView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -39,9 +36,6 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('api/users/', include('users.urls')),
     path('api/investors/', include('investors.urls')),
     path('api/communications/', include('communications.urls')),

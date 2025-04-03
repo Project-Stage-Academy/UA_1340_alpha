@@ -7,6 +7,8 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from forum.tasks import send_email_task, send_email_task_no_ssl
@@ -85,3 +87,24 @@ def send_verification_email(user, request) -> bool:
     except Exception as e:
         logger.error(f"Failed to send verification email: {e}")
         return False
+    
+
+class TokenAuthSupportCookie(JWTAuthentication):
+    """
+    Extend the JWTAuthentication class to support cookie-based authentication.
+    If no 'Authorization' header is provided, it falls back to the 'access_token' cookie.
+    """
+    def authenticate(self, request):
+        if 'HTTP_AUTHORIZATION' in request.META:
+            return super().authenticate(request)
+
+        if 'access_token' in request.COOKIES:
+            raw_token = request.COOKIES.get('access_token')
+            if not raw_token:
+                raise AuthenticationFailed('No token provided in cookie.')
+
+            validated_token = self.get_validated_token(raw_token)
+            user = self.get_user(validated_token)
+            return (user, validated_token)
+
+        return None
