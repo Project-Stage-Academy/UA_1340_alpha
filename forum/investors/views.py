@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.db import IntegrityError, transaction
 from django.db.models import Sum
+from django.utils import timezone
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions, status
@@ -855,7 +856,7 @@ class RecentlyViewedStartupsView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsInvestor]
 
     def get_queryset(self):
-        return ViewedStartup.objects.filter(user=self.request.user)
+        return ViewedStartup.objects.filter(user=self.request.user).order_by('-viewed_at')
 
 
 class LogStartupView(APIView):
@@ -886,7 +887,11 @@ class LogStartupView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        ViewedStartup.objects.update_or_create(user=request.user, startup=startup)
+        ViewedStartup.objects.update_or_create(
+            user=request.user,
+            startup=startup,
+            defaults={"viewed_at": timezone.now()}
+        )
         return Response(
             {"message": "Startup view saved successfully."},
             status=status.HTTP_200_OK
@@ -905,7 +910,14 @@ class ClearViewedStartups(APIView):
         }
     )
     def delete(self, request):
-        ViewedStartup.objects.filter(user=request.user).delete()
+        deleted_count, _ = ViewedStartup.objects.filter(user=request.user).delete()
+
+        if deleted_count == 0:
+            return Response(
+                {"error": "No recently viewed startups."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
         return Response(
             {"message": "Recently viewed startups cleared successfully."},
             status=status.HTTP_200_OK

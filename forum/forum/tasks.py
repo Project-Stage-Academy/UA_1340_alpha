@@ -8,6 +8,7 @@ from celery import shared_task
 from celery.exceptions import MaxRetriesExceededError
 from django.conf import settings
 from django.core.mail import send_mail
+from django.utils import timezone
 
 from investors.models import ViewedStartup
 from startups.models import StartupProfile
@@ -93,7 +94,11 @@ def send_email_task(subject: str, message: str, recipient_list: List[str], html_
 def save_viewed_startup(user: User, startup: StartupProfile):
     try:
         if user.is_investor:
-            ViewedStartup.objects.update_or_create(user=user, startup=startup)
+            ViewedStartup.objects.update_or_create(
+                user=user,
+                startup=startup,
+                defaults={"viewed_at": timezone.now()}
+            )
             logger.info(f"Viewed startup saved successfully for {user}")
     except Exception as e:
         logger.error(f"Failed to save viewed startup for {user}: {e}")

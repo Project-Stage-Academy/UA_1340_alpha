@@ -82,7 +82,7 @@ class InvestorTrackedProject(models.Model):
 class ViewedStartup(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='viewed_startups')
     startup = models.ForeignKey(StartupProfile, on_delete=models.CASCADE, related_name='viewed_by')
-    viewed_at = models.DateTimeField(auto_now_add=True)
+    viewed_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('user', 'startup')
