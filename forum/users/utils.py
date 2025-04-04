@@ -13,7 +13,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from forum.tasks import send_email_task_no_ssl
+from forum.tasks import send_email_task_no_ssl, send_email_task
 
 logger = logging.getLogger(__name__)
 
