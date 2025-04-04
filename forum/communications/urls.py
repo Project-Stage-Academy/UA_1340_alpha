@@ -1,8 +1,9 @@
 from django.urls import path
 
-from .views import CommunicationDetailApiView, CommunicationsApiView
+from .views import CreateConversationApiView, ListMessagesApiView, SendMessageApiView
 
 urlpatterns = [
-    path('', CommunicationsApiView.as_view(), name='communications-list-create'),
-    path('<int:communication_id>/', CommunicationDetailApiView.as_view(), name='communication-detail'),
+    path('conversations/', CreateConversationApiView.as_view(), name='create_conversation'),
+    path('messages/', SendMessageApiView.as_view(), name='send_message'),
+    path('conversations/<str:conversation_id>/messages/', ListMessagesApiView.as_view(), name='list_messages'),
 ]

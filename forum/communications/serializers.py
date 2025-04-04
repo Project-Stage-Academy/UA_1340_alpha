@@ -1,42 +1,58 @@
 from rest_framework import serializers
 
-from users.serializers import UserSerializer
-from .models import Communication
+from .models import Message, Room
 
 
-class CommunicationsSerializer(serializers.ModelSerializer):
-    sender = UserSerializer(read_only=True)
-    receiver = UserSerializer(read_only=True)
-
-    class Meta:
-        model = Communication
-        fields = '__all__'
-        read_only_fields = ('id', 'is_read', 'created_at')
-
-
-class CreateCommunicationsSerializer(serializers.ModelSerializer):
-    sender = serializers.PrimaryKeyRelatedField(read_only=True)
-
-    class Meta:
-        model = Communication
-        fields = ['id', 'sender', 'receiver', 'content']
-        read_only_fields = ('id',)
-
-    def validate(self, data):
-        request = self.context.get('request')
-        if not request:
-            raise serializers.ValidationError("Request object is required.")
-
-        sender = request.user
-        receiver = data.get('receiver')
-
-        if not receiver:
-            raise serializers.ValidationError({"receiver": "Receiver is required."})
-        if sender == receiver:
-            raise serializers.ValidationError({"receiver": "The sender and the recipient may not be the same person."})
-        return data
+class RoomSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    participants = serializers.ListField(
+        child=serializers.EmailField(), allow_empty=False
+    )
+    created_at = serializers.DateTimeField(read_only=True)
+    updated_at = serializers.DateTimeField(read_only=True)
 
     def create(self, validated_data):
-        validated_data['sender'] = self.context['request'].user
-        return super().create(validated_data)
+        room = Room(**validated_data)
+        room.save()
+        return room
 
+
+class CreateRoomSerializer(serializers.Serializer):
+    participants = serializers.ListField(
+        child=serializers.EmailField(), allow_empty=False
+    )
+
+    def create(self, validated_data):
+        room = Room(**validated_data)
+        room.save()
+        return room
+
+
+class MessageSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    room = serializers.CharField(source="room.id", read_only=True)
+    sender = serializers.EmailField(read_only=True)
+    text = serializers.CharField()
+    timestamp = serializers.DateTimeField(read_only=True)
+
+
+class CreateMessageSerializer(serializers.Serializer):
+    conversation_id = serializers.CharField()
+    text = serializers.CharField(max_length=1000)
+
+    def validate_conversation_id(self, value):
+        try:
+            Room.objects.get(id=value)  # Перевірка існування кімнати
+        except Room.DoesNotExist:
+            raise serializers.ValidationError("Conversation not found.")
+        return value
+
+    def create(self, validated_data):
+        room = Room.objects.get(id=validated_data['conversation_id'])
+        message = Message(
+            room=room,
+            sender=self.context['request'].user.email,
+            text=validated_data['text']
+        )
+        message.save()
+        return message

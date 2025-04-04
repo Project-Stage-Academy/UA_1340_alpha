@@ -12,7 +12,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.room_id = self.scope["url_route"]["kwargs"]["room_id"]
         self.room_group_name = f"chat_{self.room_id}"
 
-        self.room = await sync_to_async(Room.objects.aget, thread_sensitive=True)(id=self.room_id)
+        self.room = await sync_to_async(Room.objects.get, thread_sensitive=True)(id=self.room_id)
         if not self.room:
             self.room = Room(id=self.room_id, participants=[])
             await sync_to_async(self.room.save)()
@@ -34,6 +34,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
+        print(f'DATA: {data}')
+        print(f'SCOPE: {self.scope}')
+        print(f'User: {self.scope["user"]}')
+
         message_text = data.get("message")
         sender_email = data.get("sender")
 
