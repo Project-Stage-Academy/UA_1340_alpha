@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    ClearViewedStartups,
     CreateDeleteSavedStartupApiView,
     InvestorPreferredIndustryApiView,
     InvestorPreferredIndustryDetailApiView,
@@ -8,6 +9,8 @@ from .views import (
     InvestorProfileDetailApiView,
     InvestorTrackedProjectApiView,
     InvestorTrackedProjectDetailApiView,
+    LogStartupView,
+    RecentlyViewedStartupsView,
     SavedStartupsApiView,
     SubscriptionCreateView,
 )
@@ -34,5 +37,10 @@ urlpatterns = [
 
     # Investor Subscription
     path('subscribe/', SubscriptionCreateView.as_view(), name='subscribe'),
+
+    # Investor Viewed Startups
+    path('viewed-startups/', RecentlyViewedStartupsView.as_view(), name='viewed-startups'),
+    path('viewed-startups/<int:startup_id>', LogStartupView.as_view(), name='save-viewed-startup'),
+    path('viewed-startups/clear', ClearViewedStartups.as_view(), name='clear-viewed-startups'),
 
 ]

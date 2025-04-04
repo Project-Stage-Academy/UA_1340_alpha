@@ -10,6 +10,7 @@ from .models import (
     InvestorProfile,
     InvestorSavedStartup,
     InvestorTrackedProject,
+    ViewedStartup,
 )
 
 
@@ -162,3 +163,17 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return InvestorTrackedProject.objects.create(**validated_data)
+
+
+class ViewedStartupSerializer(serializers.ModelSerializer):
+    startup = StartupProfileSerializer(read_only=True)
+
+    class Meta:
+        model = ViewedStartup
+        fields = [
+            'id',
+            'user',
+            'startup',
+            'viewed_at',
+        ]
+        read_only_fields = ['id', 'viewed_at']

@@ -16,6 +16,8 @@ import sys
 from datetime import timedelta
 from pathlib import Path
 
+import mongoengine
+from django.urls import reverse_lazy
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -147,6 +149,8 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
 ]
 
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
 ROOT_URLCONF = 'forum.urls'
 
 TEMPLATES = [
@@ -168,6 +172,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'forum.wsgi.application'
 ASGI_APPLICATION = 'forum.asgi.application'
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer", # Redis I will add later
+    },
+}
+
+
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
@@ -185,6 +196,15 @@ DATABASES = {
         'PORT': os.environ.get('POSTGRES_PORT')
     },
 }
+
+# Added MongoDB
+MONGO_DB = os.environ.get("MONGO_DATABASE")
+mongoengine.connect(
+    db=MONGO_DB,
+    host=os.environ.get("MONGO_URL")
+)
+
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -218,9 +238,14 @@ SITE_ID = 1
 
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+LOGIN_REDIRECT_URL = reverse_lazy('select_role')
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = "mandatory" 
+ACCOUNT_EMAIL_VERIFICATION = "none" 
+SOCIALACCOUNT_AUTO_SIGNUP = False
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_ADAPTER = 'users.adapters.CustomSocialAccountAdapter'
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
@@ -235,7 +260,11 @@ SOCIALACCOUNT_PROVIDERS = {
             "key": "",
         },
         "SCOPE": ["email", "profile"],
-        "AUTH_PARAMS": {"access_type": "offline"},
+        "AUTH_PARAMS": {
+            "access_type": "offline",
+            "prompt": "select_account"
+            },
+        "VERIFIED_EMAIL": True,
     },
     "github": {
         "APP": {
@@ -244,6 +273,10 @@ SOCIALACCOUNT_PROVIDERS = {
             "key": "",
         },
         "SCOPE": ["user:email"],
+        "AUTH_PARAMS": {
+            "prompt": "select_account"
+            },
+        "VERIFIED_EMAIL": True,
     },
 }
 
@@ -346,9 +379,6 @@ DEFAULT_FILE_STORAGE = 'forum.storages.MediaStorage'
 
 # Media files URL
 MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/'
-
-# set UTF-8 as default encoding
-DEFAULT_CHARSET = 'utf-8'
 
 # Elasticsearch settings
 ELASTICSEARCH_DSL = {

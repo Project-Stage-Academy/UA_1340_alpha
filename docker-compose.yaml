@@ -14,6 +14,7 @@ services:
       - "8000:8000"
     depends_on:
       - db
+      - mongo
       - redis
       - elasticsearch
     environment:
@@ -32,7 +33,9 @@ services:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
       - DJANGO_SETTINGS_MODULE=forum.settings
-
+      - MONGO_URL=${MONGO_URL}
+      - MONGO_DATABASE=${MONGO_DATABASE}
+      - REDIS_URL=${REDIS_URL}
   db:
     image: postgres:17.0-alpine
     container_name: db
@@ -45,6 +48,17 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    restart: on-failure
+    volumes:
+      - ./mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
 
   pgadmin:
     image: dpage/pgadmin4
@@ -75,6 +89,7 @@ services:
     volumes:
       - .:/usr/src
     depends_on:
+      - db
       - redis
       - api
     environment:
@@ -118,5 +133,6 @@ services:
 
 volumes:
   postgres-data:
+  mongo-data:
   pgadmin-data:
   esdata01:
