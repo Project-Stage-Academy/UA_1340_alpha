@@ -116,6 +116,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_elasticsearch_dsl',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -123,6 +124,7 @@ INSTALLED_APPS = [
     'startups',
     'investors',
     'projects',
+    # 'projects.apps.ProjectsConfig'
     'communications',
     'dashboard',
     'storages',
@@ -378,3 +380,10 @@ DEFAULT_FILE_STORAGE = 'forum.storages.MediaStorage'
 # Media files URL
 MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/'
 
+# Elasticsearch settings
+ELASTICSEARCH_DSL = {
+    'default': {
+        'hosts': 'http://elasticsearch:9200',
+        'http_auth': None,
+    }
+}

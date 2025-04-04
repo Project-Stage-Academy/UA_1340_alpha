@@ -5,6 +5,7 @@ services:
     restart: always
     command: sh -c "sleep 5 && pylint forum/forum || true &&
                     python forum/manage.py migrate &&
+                    python forum/manage.py bulk_index_projects &&
                     python forum/manage.py collectstatic --noinput &&
                     python forum/manage.py runserver 0.0.0.0:8000"
     volumes:
@@ -15,6 +16,7 @@ services:
       - db
       - mongo
       - redis
+      - elasticsearch
     environment:
       - IN_DOCKER=true
       - SECRET_KEY=${SECRET_KEY}
@@ -94,7 +96,43 @@ services:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
 
+  celery-flower:
+    image: mher/flower:0.9.7  # Use a stable version
+    container_name: celery-flower
+    restart: always
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+    command: --broker=${CELERY_BROKER_URL} --port=5555
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    container_name: elasticsearch
+    volumes:
+      - esdata01:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.0
+    container_name: kibana
+    restart: always
+    depends_on:
+      - api
+      - elasticsearch
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+
 volumes:
   postgres-data:
   mongo-data:
   pgadmin-data:
+  esdata01:

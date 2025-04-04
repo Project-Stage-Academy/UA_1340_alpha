@@ -2,6 +2,8 @@ import random
 
 from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand
+from elasticsearch import Elasticsearch
+from elasticsearch.helpers import bulk
 from faker import Faker
 
 from investors.models import (
@@ -19,12 +21,29 @@ fake = Faker()
 class Command(BaseCommand):
     help = "Populate database with fake data"
 
+    def bulk_index_projects(self, es):
+        actions = ({
+            "_index": "projects",
+            "_id": project.id,
+            "_source": {
+                "title": project.title,
+                "description": project.description,
+                "status": project.status,
+                "funding_goal": project.funding_goal
+            }
+        } for project in Project.objects.all().iterator())
+
+        success, _ = bulk(es, actions, stats_only=True)
+        self.stdout.write(
+            self.style.SUCCESS(f"Bulk indexed {success} historical projects")
+        )
+
     def handle(self, *args, **kwargs):
         self.stdout.write(self.style.SUCCESS("Starting database population..."))
 
         # Create industries
 
-        industry = ["Tech", "Healthcare", "Finance", "Real Estate", "Energy"]
+        industry = ["Tech1", "Healthcare", "Finance", "Real Estate", "Energy"]
         industries = [Industry.objects.create(name=name) for name in industry]
         self.stdout.write(self.style.SUCCESS("Industries created."))
 
@@ -114,3 +133,9 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Projects created."))
 
         self.stdout.write(self.style.SUCCESS("Database population completed."))
+
+        #
+        es = Elasticsearch(["http://127.0.0.1:9200"])
+        self.bulk_index_projects(es)
+
+
