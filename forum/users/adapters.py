@@ -22,4 +22,3 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         request.session.pop('sociallogin', None)
         return user
     
-    

@@ -28,6 +28,7 @@ from .serializers import (
 from .utils import (
     send_reset_password_email,
     send_verification_email,
+    send_welcome_email,
     validate_password_policy,
 )
 
@@ -680,6 +681,9 @@ class SetRoleView(GenericAPIView):
                 secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
                 samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"]
             )
+
+            if not send_welcome_email(serializer.user, request):
+                response.data["warning"] = "Failed to send welcome email, but registration was successful."
 
             return response
 
